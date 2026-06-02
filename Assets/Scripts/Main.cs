@@ -4,6 +4,11 @@ using UnityEngine;
 
 public class Main : MonoBehaviour
 {
+
+
+    //所有卡牌数据
+    [SerializeField] private List<CardData> allCardDatas;
+     public List<CardData> deckData;
     // Start is called before the first frame update
     void Start()
     {

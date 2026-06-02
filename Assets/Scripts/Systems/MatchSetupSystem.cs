@@ -22,22 +22,28 @@ public class MatchSetupSystem : MonoBehaviour
         CardSystem.Instance.Setup(deckData);
 
         // 用协程 分步执行，避免同一帧拥挤
-        StartCoroutine(InitSequence());
+        StartCoroutine(InitHandCard());
+        StartCoroutine(InitWeapon());
     }
 
-    private IEnumerator InitSequence()
-    {
+    private IEnumerator InitHandCard()
+    { 
         // 1. 先抽卡
         DrawCardsGA drawCardsGA = new(6);
         ActionSystem.Instance.Perform(drawCardsGA);
 
         // 等待一帧，让抽卡执行完
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(1f);
 
+
+    }
+
+    private IEnumerator InitWeapon()
+    {
         // 2. 再装备武器（这时候系统一定不忙）
         WeaponCard weaponCard = WeaponSystem.Instance.Setup(weaponData);
         SetWeaponGA setWeaponGA = new(weaponCard);
         ActionSystem.Instance.Perform(setWeaponGA);
+        yield return new WaitForSeconds(1f);
     }
-
 }
