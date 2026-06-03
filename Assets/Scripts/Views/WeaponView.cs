@@ -47,7 +47,7 @@ public class WeaponView : MonoBehaviour
     }
 
 
-    void EndDrag(CardLogic cardLogic)
+    void EndDrag(CardLogic cardLogic, Vector2 endScreenPos)
     {
         if (selectedCardLogic == null)
             return;

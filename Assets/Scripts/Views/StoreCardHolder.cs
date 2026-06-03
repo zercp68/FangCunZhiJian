@@ -7,7 +7,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
+public class StoreCardHolder : Singleton<StoreCardHolder>
 {
 
     [SerializeField] private CardLogic selectedCardLogic;
@@ -41,7 +41,7 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
         //List<Card> cards = GetComponentsInChildren<Card>().ToList();
 
         rect = GetComponent<RectTransform>();
-        
+
     }
     /// <summary>
     /// 杰哥
@@ -79,7 +79,7 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
     /// <summary>
     /// 动态添加一张新卡牌（根据 Card）
     /// </summary>
-    public IEnumerator AddCard(Card card,Transform drawPilePoint)
+    public IEnumerator AddCard(Card card, Transform drawPilePoint)
     {
         GameObject freeSlot = GetFreeSlot();
 
@@ -89,7 +89,7 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
         // 3. 绑定槽位到 CardLogic（关键！后面弃牌要靠它销毁）
         newCardLogic.slotGameObject = freeSlot;
 
-        
+
 
         // 添加到 cards 列表并绑定事件
         RegisterCard(newCardLogic);
@@ -107,7 +107,7 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
     /// 杰哥绑定事件
     /// </summary>
     /// <param name="cardLogic"></param>
-    public  void RegisterCard(CardLogic cardLogic)
+    public void RegisterCard(CardLogic cardLogic)
     {
         this.cardLogics.Add(cardLogic);
 
@@ -127,17 +127,17 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
     /// <returns></returns>
     public CardLogic RemoveCard(Card card)
     {
-        CardLogic ReCardLogic=GetCardVlogic(card);
+        CardLogic ReCardLogic = GetCardVlogic(card);
         if (ReCardLogic == null) return null;
         // 添加到 cards 列表并绑定事件
         UnregisterCard(ReCardLogic);
-
 
         // 更新所有卡牌的视觉索引
         RefreshCardLayout();
 
         return ReCardLogic;
     }
+
     /// <summary>
     /// 强制刷新卡牌容器布局（解决弃牌占位）
     /// </summary>
@@ -170,17 +170,6 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
     }
 
 
-    /// <summary>
-    /// 确保有足够数量的槽位（如果没有则创建）
-    /// </summary>
-    private void EnsureSlotCount(int requiredCount)
-    {
-        int currentSlotCount = transform.childCount;
-        for (int i = currentSlotCount; i < requiredCount; i++)
-        {
-            Instantiate(slotPrefab, transform);
-        }
-    }
 
     /// <summary>
     /// 获取一个空闲槽位（没有子物体），如果没有则创建新槽位
@@ -231,41 +220,25 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
             playAreaRect.GetWorldCorners(corners);
             Vector2 areaLeft = RectTransformUtility.WorldToScreenPoint(uiCam, corners[0]);
             Vector2 areaRight = RectTransformUtility.WorldToScreenPoint(uiCam, corners[2]);
-            float midX = (areaLeft.x + areaRight.x) / 2;
-            string hand = endScreenPos.x <= midX ? "Left" : "Right";
-            Debug.Log($"[区域判定] 出牌区屏幕范围: X({areaLeft.x:F2} ~ {areaRight.x:F2}), 中点: {midX:F2}, 卡牌X: {endScreenPos.x:F2}, 判定为: {hand}");
+            Debug.Log($"[区域判定] 出牌区屏幕范围: X({areaLeft.x:F2} ~ {areaRight.x:F2}),  卡牌X: {endScreenPos.x:F2}");
         }
 
         // 业务分发（注意：这里不要再调用任何归位动画）
         if (isOverPlayArea)
         {
-            if (card is ActionCard actionCard)
+            if (card is WeaponCard weaponCard)
             {
-                if (!ManaSystem.Instance.HasEnoughMana(actionCard.ManaCost)
-                    && !WeaponSystem.Instance.IsMatchWeapon(actionCard))
-                { 
-                    Debug.Log("法力不足"); 
-                    Debug.Log("武器不匹配"); 
-                }
-                else
-                {
-                    PlayCardGA playCardGA = new PlayCardGA(actionCard);
-                    ActionSystem.Instance.Perform(playCardGA);
-                }
+                //显示装备武器牌提示框，是否装备
+                Debug.Log("请装备武器");
             }
-            else if (card is ElementCard elementCard)
+            else if (card is ActionCard actionCard || card is ElementCard elementCard)
             {
-                if (!ManaSystem.Instance.HasEnoughMana(elementCard.ManaCost))
-                    Debug.Log("法力不足");
-                else
-                {
-                    PlayCardGA playCardGA = new PlayCardGA(elementCard);
-                    ActionSystem.Instance.Perform(playCardGA);
-                }
+                //扣钱
+                //加到手牌中
             }
             else
             {
-                Debug.Log("普通牌，无法使用的卡牌类型");
+                Debug.Log("普通卡牌商店错误，无法使用的卡牌类型");
             }
         }
 

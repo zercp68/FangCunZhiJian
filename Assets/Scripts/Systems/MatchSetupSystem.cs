@@ -20,30 +20,20 @@ public class MatchSetupSystem : MonoBehaviour
         // 初始化不受动作系统影响的部分
         EnemySystem.Instance.Setup(enemyDatas);
         CardSystem.Instance.Setup(deckData);
-
-        // 用协程 分步执行，避免同一帧拥挤
-        StartCoroutine(InitHandCard());
-        StartCoroutine(InitWeapon());
+        WeaponCard weaponCard = WeaponSystem.Instance.Setup(weaponData);
+        // 1. 先抽卡
+        StartCoroutine(InitAll());
     }
 
-    private IEnumerator InitHandCard()
-    { 
-        // 1. 先抽卡
+    private IEnumerator InitAll()
+    {
         DrawCardsGA drawCardsGA = new(6);
         ActionSystem.Instance.Perform(drawCardsGA);
+        while (ActionSystem.Instance.IsBusy) yield return null;
 
-        // 等待一帧，让抽卡执行完
-        yield return new WaitForSeconds(1f);
-
-
-    }
-
-    private IEnumerator InitWeapon()
-    {
-        // 2. 再装备武器（这时候系统一定不忙）
         WeaponCard weaponCard = WeaponSystem.Instance.Setup(weaponData);
         SetWeaponGA setWeaponGA = new(weaponCard);
         ActionSystem.Instance.Perform(setWeaponGA);
-        yield return new WaitForSeconds(1f);
+        while (ActionSystem.Instance.IsBusy) yield return null;
     }
 }

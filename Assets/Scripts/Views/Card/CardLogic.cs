@@ -52,7 +52,7 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
     [HideInInspector] public UnityEvent<CardLogic, bool> PointerUpEvent;
     [HideInInspector] public UnityEvent<CardLogic> PointerDownEvent;
     [HideInInspector] public UnityEvent<CardLogic> BeginDragEvent;
-    [HideInInspector] public UnityEvent<CardLogic> EndDragEvent;
+    [HideInInspector] public UnityEvent<CardLogic,Vector2> EndDragEvent;
     [HideInInspector] public UnityEvent<CardLogic, bool> SelectEvent;
 
     public void Setup(Card card)
@@ -142,63 +142,6 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
 
     }
 
-
-
-    /// <summary>
-    /// 检测鼠标放开卡牌后的位置，是否在碰撞区域
-    /// </summary>
-    /// <returns></returns>
-    private bool IsOverPlayArea()
-    {
-        if (playAreaRect == null)
-        {
-            Debug.LogWarning("出牌区域引用为空！");
-            return false;
-        }
-
-        RectTransform cardRect = GetComponent<RectTransform>();
-
-        // 1. 把卡牌的世界坐标 → 转换成屏幕坐标（和出牌区的坐标体系对齐）
-        Vector2 cardScreenPos = RectTransformUtility.WorldToScreenPoint(null, cardRect.position);
-
-        // 2. 获取出牌区的四个角（世界坐标），再转成屏幕坐标
-        Vector3[] areaCorners = new Vector3[4];
-        playAreaRect.GetWorldCorners(areaCorners);
-        Vector2 areaMin = RectTransformUtility.WorldToScreenPoint(null, areaCorners[0]);
-        Vector2 areaMax = RectTransformUtility.WorldToScreenPoint(null, areaCorners[2]);
-
-        // 3. 手动判断卡牌屏幕坐标是否在出牌区的屏幕范围内
-        bool isInArea =
-            cardScreenPos.x >= areaMin.x &&
-            cardScreenPos.x <= areaMax.x &&
-            cardScreenPos.y >= areaMin.y &&
-            cardScreenPos.y <= areaMax.y;
-
-        Vector2 areaMiddle;
-        areaMiddle.x=(areaMin.x + areaMax.x)/2;
-
-        // 仅在出牌区时，分配左右手
-        if (isInArea && card != null)
-        {
-            float areaMiddleX = (areaMin.x + areaMax.x) / 2;
-            card.E_WeaponHand = cardScreenPos.x <= areaMiddleX ? E_WeaponHand.Left : E_WeaponHand.Right;
-        }
-
-
-        Debug.Log($"卡牌屏幕坐标: {cardScreenPos} | 出牌区范围: 左下{areaMin}, 右上{areaMax} | 是否在出牌区: {isInArea} | 左边还是右边？：{card.E_WeaponHand}");
-
-        return isInArea;
-    }
-
-    /// <summary>
-    /// 统一：卡牌归位 + 重置拖拽状态
-    /// </summary>
-    private void ResetCardToSlot()
-    {
-        EndDragEvent.Invoke(this);
-        StartCoroutine(FrameWaitResetDragged());
-    }
-
     /// <summary>
     /// 等待帧结束，重置拖拽标记
     /// </summary>
@@ -208,75 +151,7 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
         wasDragged = false;
     }
 
-    /// <summary>
-    /// 武器牌规则：未装备就装备；已装备就回槽
-    /// </summary>
-    private void HandleWeaponCard(WeaponCard weaponCard) 
-    {
-        if (weaponCard.E_WeaponHand == E_WeaponHand.None)
-        {
-            Debug.Log("武器未指定左右手，回槽");
-            ResetCardToSlot();
-            return;
-        }
-        //未装备才装备，已经装备就回槽
-        if (!weaponCard.IsWeaponEquipped) 
-        {
-            Debug.Log($"装备武器：{weaponCard.CardName} 到 {weaponCard.E_WeaponHand}手");
 
-            SetWeaponGA setWeaponGA=new SetWeaponGA(weaponCard);
-            ActionSystem.Instance.Perform(setWeaponGA);
-        }
-        else
-        {
-            Debug.Log($"武器{weaponCard.CardName}已装备，回槽");
-        }
-
-        ResetCardToSlot();
-    }
-
-    /// <summary>
-    /// 动作牌规则：先匹配武器  够蓝再出牌
-    /// </summary>
-    private void HandleActionCard(ActionCard actionCard)
-    {
-        if (!WeaponSystem.Instance.IsMatchWeapon(actionCard))
-        {
-            Debug.Log($"动作牌{actionCard.CardName}与武器不匹配，回槽");
-            ResetCardToSlot();
-            return;
-        }
-        // 2. 检查法力值
-        if (!ManaSystem.Instance.HasEnoughMana(actionCard.ManaCost))
-        {
-            Debug.Log($"动作牌{actionCard.CardName}法力不足，回槽");
-            ResetCardToSlot();
-            return;
-        }
-        // 3. 出牌
-        Debug.Log($"打出动作牌：{actionCard.CardName}");
-        PlayCardGA playCardGA = new PlayCardGA(actionCard);
-        ActionSystem.Instance.Perform(playCardGA);
-    }
-
-    /// <summary>
-    /// 元素牌规则：无需匹配武器  够蓝就出牌
-    /// </summary>
-    private void HandleElementCard(ElementCard elementCard)
-    {
-        // 检查法力值
-        if (!ManaSystem.Instance.HasEnoughMana(elementCard.ManaCost))
-        {
-            Debug.Log($"元素牌{elementCard.CardName}法力不足，回槽");
-            ResetCardToSlot();
-            return;
-        }
-
-        // 出牌
-        Debug.Log($"打出元素牌：{elementCard.CardName}");
-        PlayCardGA playCardGA = new PlayCardGA(elementCard);
-        ActionSystem.Instance.Perform(playCardGA);
-    }
 
     public void OnEndDrag(PointerEventData eventData)
     {
@@ -285,40 +160,12 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
         canvas.GetComponent<GraphicRaycaster>().enabled = true;
         imageComponent.raycastTarget = true;
 
-        // ===== 新增：出牌区域检测 =====
-        // 法力值足够,直接调用新的IsOverPlayArea
-        //只调用1次，缓存结果（消除重复调用）
-        bool isInPlayArea = IsOverPlayArea();
 
-        // 不在出牌区 → 直接归位
-        if (!isInPlayArea)
-        {
-            Debug.Log("未在出牌区域，卡牌回槽");
-            ResetCardToSlot();
-            return;
-        }
-
-        if (card is WeaponCard weaponCard)
-        {
-            HandleWeaponCard(weaponCard);
-            return;
-        }
-
-        if (card is ActionCard actionCard)
-        {
-            HandleActionCard(actionCard);
-            return;
-        }
-
-        if (card is ElementCard elementCard)
-        {
-            HandleElementCard(elementCard);
-            return;
-        }
-
-        // 普通卡 → 归位
-        ResetCardToSlot();
+        //  归位
+        EndDragEvent?.Invoke(this, eventData.position);
+        StartCoroutine(FrameWaitResetDragged());
     }
+
 
     public void OnPointerEnter(PointerEventData eventData)
     {

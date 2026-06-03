@@ -216,7 +216,7 @@ public class CardVisual : MonoBehaviour
         canvas.overrideSorting = true;
     }
 
-    private void EndDrag(CardLogic cardLogic)
+    private void EndDrag(CardLogic cardLogic, Vector2 endScreenPos)
     {
         canvas.overrideSorting = false;
         transform.DOScale(1, scaleTransition).SetEase(scaleEase);

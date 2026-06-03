@@ -9,7 +9,8 @@ using UnityEngine;
 public class ActionSystem : Singleton<ActionSystem>
 {
     // ---------- 私有字段 ----------
-    private bool isPerforming = false;                     // 是否正在执行动作
+    private bool isPerforming = false;                     // 是否正在执行动作   
+    public bool IsBusy => isPerforming;                  // 新增公开只读属性
     private List<GameAction> currentReactionList = null;   // 当前正在收集反应的列表（由Flow临时赋值）
 
     // 订阅者字典：Key=动作类型，Value=该类型注册的回调列表（回调接收 GameAction）
