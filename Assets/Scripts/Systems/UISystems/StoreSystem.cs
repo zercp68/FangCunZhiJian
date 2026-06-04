@@ -154,7 +154,6 @@ public class StoreSystem : Singleton<StoreSystem>
             //÷¥––µ•’≈≥È≈∆
             yield return DrawCard();
         }
-
     }
 
     private IEnumerator RethrowPerformer(RethrowGA rethrowGA)

@@ -14,7 +14,7 @@ public class CardSystem : Singleton<CardSystem>
     [SerializeField] private Transform drawPilePoint;
     [SerializeField] private Transform discardPilePoint;
 
-    private readonly List<Card> drawPileCards = new List<Card>();
+    private  List<Card> drawPileCards = new List<Card>();
     private readonly List<Card> discardPileCards = new List<Card>();
     private readonly List<Card> handCards = new List<Card>();
 

@@ -13,7 +13,6 @@ public class CardVisual : MonoBehaviour
     private bool initalize = false;
 
 
-    public Card Card { get; private set; }
 
     [Header("CardLogic")]
     public CardLogic parentCardLogic;
@@ -28,11 +27,15 @@ public class CardVisual : MonoBehaviour
     private float shadowOffset = 20;
     private Vector2 shadowDistance;
     private Canvas shadowCanvas;
+    [SerializeField] private GameObject priceTagPanel;
+    //[SerializeField] private GameObject ManaPanel;
     [SerializeField] private Transform shakeParent;
     [SerializeField] private Transform tiltParent;
     [SerializeField] private GameObject cardDescription;
     [SerializeField] private Image cardImage;
     [SerializeField] private Text txtcardDescription;
+    [SerializeField] private Text txtPrice;
+    //[SerializeField] private Text txtMana;
 
     [Header("Follow Parameters")]
     [SerializeField] private float followSpeed = 30;
@@ -76,6 +79,16 @@ public class CardVisual : MonoBehaviour
         shadowDistance = visualShadow.localPosition;
     }
 
+    public void UpdateUIForContext(E_CardDisplayContext context=E_CardDisplayContext.InMath)
+    {
+        if (priceTagPanel != null)
+        {
+            priceTagPanel.SetActive(context == E_CardDisplayContext.InShop);
+        }
+        //if (ManaPanel != null)
+        //    ManaPanel.SetActive(context == E_CardDisplayContext.InMath);
+    }
+
     public void SetUp(CardLogic target)
     {
         if (target == null) 
@@ -92,6 +105,15 @@ public class CardVisual : MonoBehaviour
         {
             txtcardDescription.text=target.description;
         }
+        if (txtPrice != null && target.price != null)
+        {
+            txtPrice.text=target.price;
+        }
+        //if (txtMana != null && target.mana != null)
+        //{
+        //    txtMana.text=target.mana;
+        //}
+
         HideDescription();
     }
 
@@ -107,7 +129,6 @@ public class CardVisual : MonoBehaviour
     public void Initialize(CardLogic target, Transform startPos, int index = 0)
     {
         transform.position = startPos.position;
-        Card = target.card;
         //Declarations
         parentCardLogic = target;
         cardTransform = target.transform;

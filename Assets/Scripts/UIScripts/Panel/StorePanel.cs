@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class StorePanel : MonoBehaviour
+public class StorePanel : BasePanel
 {
     [Header("References")]
     [SerializeField] private List<CardData> deckData1;
@@ -64,5 +64,9 @@ public class StorePanel : MonoBehaviour
 
         // 显示当前金币
         UpdateMoneyDisplay(PlayerDataManager.Instance?.Money ?? 0);
+    }
+
+    public override void Init()
+    {
     }
 }

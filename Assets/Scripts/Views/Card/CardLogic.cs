@@ -8,6 +8,19 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+public enum E_CardDisplayContext
+{
+    /// <summary>
+    /// 战斗中
+    /// </summary>
+    InMath,
+    /// <summary>
+    /// 商店界面
+    /// </summary>
+    InShop   
+
+}
+
 public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler, IPointerUpHandler, IPointerDownHandler
 {
     //我的
@@ -15,7 +28,8 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
     [Header("Card")]
     [SerializeField] private TMP_Text title;
 
-    [SerializeField] private TMP_Text mana;
+    //[SerializeField] public string mana { get; private set; }
+    [SerializeField] public string price { get; private set; }
     [SerializeField] public Sprite Image { get; private set; }
     [SerializeField] public string description { get; private set; }
 
@@ -62,7 +76,8 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
         //this.card = card;
         //title.text = card.Title;
         
-        //mana.text = card.Mana.ToString();
+        //mana= card.ManaCost.ToString();
+        price= card.CardMoney.ToString();
         this.card = card;
         Image = card.Image;
         description = card.Description;

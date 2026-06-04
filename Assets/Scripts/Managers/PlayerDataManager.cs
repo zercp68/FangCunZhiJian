@@ -63,6 +63,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     private void Start()
     {
         InitNewGame();
+        UIManager.Instance.ShowPanel<MathPanel>();
     }
 
     /// <summary>
@@ -77,7 +78,11 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         currentRightWeapon = null;
         OnMoneyChanged?.Invoke(currentMoney);   // 添加这一行
         Debug.Log($"初始化完成，金币: {currentMoney}, 卡组数量: {currentDeck.Count}");
-
+        // 新增：检查initialCardDatas是否配置
+        if (initialCardDatas == null || initialCardDatas.Count == 0)
+        {
+            Debug.LogError("PlayerDataManager: initialCardDatas（初始卡组）未在Inspector配置！");
+        }
     }
 
     /// <summary>

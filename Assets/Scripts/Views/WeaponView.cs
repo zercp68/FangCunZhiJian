@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class WeaponView : MonoBehaviour
 {
-
+    private E_CardDisplayContext cardDisplayContext = E_CardDisplayContext.InMath;
     [SerializeField] private GameObject slotPrefab;
 
     [SerializeField] private Transform slotParent;
@@ -25,7 +25,7 @@ public class WeaponView : MonoBehaviour
     {
         GameObject NewSlot = Instantiate(slotPrefab, slotParent);
         // 使用 Creator 创建卡牌
-        CardLogic newCardLogic = CardViewCreator.Instance.CreateCardVisual(weaponCard, NewSlot.transform, NewSlot.transform, viewParent);
+        CardLogic newCardLogic = CardViewCreator.Instance.CreateCardVisual(weaponCard, NewSlot.transform, NewSlot.transform, viewParent,cardDisplayContext);
 
         // 3. 绑定槽位到 CardLogic（关键！后面弃牌要靠它销毁）
         newCardLogic.slotGameObject = NewSlot;

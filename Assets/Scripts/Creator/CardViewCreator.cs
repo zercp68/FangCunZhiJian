@@ -22,7 +22,7 @@ public class CardViewCreator : MonoBehaviour
     /// <summary>
     /// 创建一张完整的卡牌（逻辑 + 视觉），并放到指定槽位下
     /// </summary>
-    public CardLogic CreateCardVisual(Card card, Transform slotParent,Transform drawPilePoint, Transform visualParent)
+    public CardLogic CreateCardVisual(Card card, Transform slotParent,Transform drawPilePoint, Transform visualParent,E_CardDisplayContext cardDisplayContext)
     {
         // 1. 实例化逻辑 Card（放在槽位下）
         GameObject cardObj = Instantiate(cardPrefab, slotParent);
@@ -40,7 +40,7 @@ public class CardViewCreator : MonoBehaviour
         CardVisual visual = visualObj.GetComponent<CardVisual>();
         visual.Initialize(cardLogic, drawPilePoint);
         cardLogic.cardVisual = visual;
-
+        cardLogic.cardVisual.UpdateUIForContext(cardDisplayContext);
         return cardLogic;
     }
 }

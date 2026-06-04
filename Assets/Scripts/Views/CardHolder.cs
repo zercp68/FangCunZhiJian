@@ -9,6 +9,8 @@ using UnityEngine.UI;
 
 public class CardHolder : Singleton<HorizontalCardHolder>
 {
+    //卡牌环境
+    private E_CardDisplayContext cardDisplayContext = E_CardDisplayContext.InMath;
 
     [SerializeField] private CardLogic selectedCardLogic;
     [SerializeReference] private CardLogic hoveredCardLogic;
@@ -84,7 +86,7 @@ public class CardHolder : Singleton<HorizontalCardHolder>
         GameObject freeSlot = GetFreeSlot();
 
         // 使用 Creator 创建卡牌
-        CardLogic newCardLogic = CardViewCreator.Instance.CreateCardVisual(card, freeSlot.transform, drawPilePoint, visualParent);
+        CardLogic newCardLogic = CardViewCreator.Instance.CreateCardVisual(card, freeSlot.transform, drawPilePoint, visualParent, cardDisplayContext);
 
         // 3. 绑定槽位到 CardLogic（关键！后面弃牌要靠它销毁）
         newCardLogic.slotGameObject = freeSlot;
