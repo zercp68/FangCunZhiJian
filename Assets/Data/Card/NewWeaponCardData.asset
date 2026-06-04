@@ -17,6 +17,7 @@ MonoBehaviour:
   <Description>k__BackingField: "\u66B4\u51FB\u7387\u4E3A0"
   <manaCost>k__BackingField: 1
   <Image>k__BackingField: {fileID: 21300000, guid: d96849dd34ecef44e9c1be75c7c0d4a4, type: 3}
+  <CardMoney>k__BackingField: 3
   E_WeaponHand: 0
   <Effects>k__BackingField:
   - rid: 912205867364909060

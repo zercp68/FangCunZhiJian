@@ -58,6 +58,12 @@ public class CardData : ScriptableObject
     /// 图片
     /// </summary>
     [field:SerializeField]public Sprite Image {  get;private set; }
+
+    /// <summary>
+    /// 卡牌金额
+    /// </summary>
+    [field:SerializeField]public int CardMoney {  get;private set; }
+
     /// <summary>
     /// 对左手还是右手的武器赋能
     /// </summary>

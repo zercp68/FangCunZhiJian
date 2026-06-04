@@ -7,6 +7,8 @@ using UnityEngine;
 /// </summary>
 public class WeaponCard : Card
 {
+    public int CardSellMoney=>((WeaponCardData)data).CardSellMoney;
+
     /// <summary>
     /// 是否已经装备
     /// </summary>

@@ -45,6 +45,8 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
     public bool isHovering;
     public bool isDragging;
     [HideInInspector] public bool wasDragged;
+    [Header("Drag Settings")]
+    public bool canDrag = true;   // ÐÂÔö£ºÊÇ·ñÔÊÐíÍÏ×§
 
     [Header("Events")]
     [HideInInspector] public UnityEvent<CardLogic> PointerEnterEvent;
@@ -126,6 +128,7 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (!canDrag) return;      // ½ûÖ¹ÍÏ×§
         BeginDragEvent.Invoke(this);
         Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         offset = mousePosition - (Vector2)transform.position;
@@ -138,7 +141,7 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
 
     public void OnDrag(PointerEventData eventData)
     {
-
+        if (!canDrag) return;      // ½ûÖ¹ÍÏ×§
 
     }
 
@@ -155,7 +158,7 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
 
     public void OnEndDrag(PointerEventData eventData)
     {
-
+        if (!canDrag) return;      // ½ûÖ¹ÍÏ×§
         isDragging = false;
         canvas.GetComponent<GraphicRaycaster>().enabled = true;
         imageComponent.raycastTarget = true;

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MatchSetupSystem : MonoBehaviour
 {
-    [SerializeField] private List<CardData> deckData;
+    [SerializeField] private List<Card> deckCards;
     [SerializeField] private List<EnemyData> enemyDatas;
     [SerializeField] private WeaponCardData weaponData;
     //private void Start()
@@ -15,12 +15,15 @@ public class MatchSetupSystem : MonoBehaviour
     //    DrawCardsGA drawCardsGA = new(6);
     //    ActionSystem.Instance.Perform(drawCardsGA);
     //}
+
+
+
     private void Start()
     {
+        deckCards = PlayerDataManager.Instance.GetCurrentDeckCopy();
         // 初始化不受动作系统影响的部分
         EnemySystem.Instance.Setup(enemyDatas);
-        CardSystem.Instance.Setup(deckData);
-        WeaponCard weaponCard = WeaponSystem.Instance.Setup(weaponData);
+        CardSystem.Instance.Setup(deckCards);
         // 1. 先抽卡
         StartCoroutine(InitAll());
     }

@@ -41,33 +41,16 @@ public class CardSystem : Singleton<CardSystem>
 
     /// <summary>
     /// 初始化牌组
-    /// 把卡牌数据转换成真正的卡牌对象，放入抽牌堆
+    /// 把当前牌组放入抽牌堆
     /// </summary>
     /// <param name="deckData"></param>
-    public void Setup(List<CardData> deckData)
+    public void Setup(List<Card> deckCards)
     {
-        foreach (var cardData in deckData)
-        {
-            Card card;
 
-            //关键：判断数据类型，创建对应的卡牌类型
-            if (cardData is ActionCardData actionData)
-            {
-                // 是行动卡数据 → 创建 ActionCard
-                card = new ActionCard(actionData);
-            }
-            else if (cardData is ElementCardData elementCardData)
-            {
-                card=new ElementCard(elementCardData);
-            }
-            else
-            {
-                Debug.Log("为普通牌，初始化错误，错误");
-                // 普通卡 → 创建基础 Card
-                card = new Card(cardData);
-            }
-            drawPileCards.Add(card);
-        }
+        // 先清空原有抽牌
+        drawPileCards.Clear();
+        // 把传入卡组全部加入抽牌堆
+        drawPileCards.AddRange(deckCards);
     }
 
     /// <summary>

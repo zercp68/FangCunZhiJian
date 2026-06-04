@@ -28,11 +28,13 @@ public class StoreSystem : Singleton<StoreSystem>
     {
         ActionSystem.AttachPerformer<RethrowGA>(RethrowPerformer);
         ActionSystem.AttachPerformer<DrawStoreCardsGA>(DrawStoreCardsPerformer);
+        ActionSystem.AttachPerformer<BuyCardGA>(BuyCardPerformer);
     }
     private void OnDisable()
     {
         ActionSystem.DetachPerformer<RethrowGA>();
         ActionSystem.DetachPerformer<DrawStoreCardsGA>();
+        ActionSystem.DetachPerformer<BuyCardGA>();
     }
 
 
@@ -168,9 +170,55 @@ public class StoreSystem : Singleton<StoreSystem>
             }
         }
         yield return DrawStoreCardsPerformer(new DrawStoreCardsGA());
-
-
     }
+
+    private IEnumerator BuyCardPerformer(BuyCardGA buyCardGA)
+    {
+        // 获取选中的卡牌逻辑
+        List<CardLogic> selectedLogics = storeCardHolder1.GetAllSelectedCards();
+        if (selectedLogics.Count == 0)
+        {
+            Debug.Log("没有选中任何卡牌，无法购买");
+            yield break;
+        }
+
+        // 计算总花费
+        int totalCost = 0;
+        List<Card> cardsToBuy = new List<Card>();
+        foreach (var cardLogic in selectedLogics)
+        {
+            if (cardLogic != null && cardLogic.card != null)
+            {
+                totalCost += cardLogic.card.CardMoney;   // 假设 Card 有 Price 属性
+                cardsToBuy.Add(cardLogic.card);
+            }
+        }
+
+        // 检查金币是否足够
+        if (!PlayerDataManager.Instance.SpendMoney(totalCost))
+        {
+            Debug.Log($"金币不足，需要 {totalCost}，当前 {PlayerDataManager.Instance.Money}");
+            yield break;
+        }
+
+        // 金币足够，执行购买：移除商店卡牌，添加到玩家卡组
+        // 先逐一播放弃牌动画并销毁（因为 DiscardCard 是协程，需要顺序执行）
+        foreach (var cardLogic in selectedLogics)
+        {
+            if (cardLogic != null)
+            {  
+                yield return DiscardCard(cardLogic);
+            }
+        }
+
+        // 将购买的卡牌添加到玩家卡组
+        PlayerDataManager.Instance.AddCardsToDeck(cardsToBuy);
+
+        Debug.Log($"购买成功，共 {cardsToBuy.Count} 张卡牌，花费 {totalCost} 金币");
+        
+    }
+
+
 
     /// <summary>
     /// 抽取单张牌

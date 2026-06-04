@@ -11,14 +11,18 @@ public class Card
     public string Description => data.Description;
     public Sprite Image => data.Image;
 
+
+
     public E_WeaponHand E_WeaponHand { get; set; }
     public List<Effect> Effects => data.Effects;
     public int ManaCost {  get;private set; }
+    public int CardMoney { get; set; }
 
     public Card(CardData cardData) 
     {
         this.data = cardData;
         this.ManaCost = cardData.manaCost;
+        this.CardMoney = cardData.CardMoney;
         this.E_WeaponHand= cardData.E_WeaponHand;
     }
 }

@@ -32,6 +32,8 @@ public enum E_WeaponType
 [CreateAssetMenu(fileName ="NewWeaponCardData",menuName = "Data/Card/Weapon")]
 public class WeaponCardData : CardData
 {
+    [field: SerializeField]public int CardSellMoney {  get;private set; }
+
     /// <summary>
     /// ÎäÆ÷ÀàĞÍ
     /// </summary>

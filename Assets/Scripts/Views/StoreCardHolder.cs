@@ -56,8 +56,8 @@ public class StoreCardHolder : Singleton<StoreCardHolder>
         {
             cardLogic.PointerEnterEvent.AddListener(CardPointerEnter);
             cardLogic.PointerExitEvent.AddListener(CardPointerExit);
-            cardLogic.BeginDragEvent.AddListener(BeginDrag);
-            cardLogic.EndDragEvent.AddListener(EndDrag);
+            //cardLogic.BeginDragEvent.AddListener(BeginDrag);
+            //cardLogic.EndDragEvent.AddListener(EndDrag);
             cardLogic.name = cardCount.ToString();
             cardCount++;
         }
@@ -88,7 +88,7 @@ public class StoreCardHolder : Singleton<StoreCardHolder>
 
         // 3. 绑定槽位到 CardLogic（关键！后面弃牌要靠它销毁）
         newCardLogic.slotGameObject = freeSlot;
-
+        newCardLogic.canDrag = false;   // 禁用拖拽
 
 
         // 添加到 cards 列表并绑定事件
