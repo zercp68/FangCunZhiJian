@@ -36,13 +36,14 @@ public class StorePanel : BasePanel
     }
 
 
-    private void Start()
+
+    public override void Init()
     {
         // 确保订阅（防止 OnEnable 时 PlayerDataManager 还未准备好）
         if (PlayerDataManager.Instance != null)
             PlayerDataManager.Instance.OnMoneyChanged += UpdateMoneyDisplay;
 
-        StoreSystem.Instance.setUp(deckData1,deckData2,deckData3);
+        StoreSystem.Instance.setUp(deckData1, deckData2, deckData3);
         DrawStoreCardsGA drawStoreCardsGA = new DrawStoreCardsGA();
         ActionSystem.Instance.Perform(drawStoreCardsGA);
 
@@ -56,17 +57,13 @@ public class StorePanel : BasePanel
         //返回界面
         btnBack.onClick.AddListener(() => { });
         //购买卡牌按钮
-        btnBuyCard.onClick.AddListener(() => 
+        btnBuyCard.onClick.AddListener(() =>
         {
-            BuyCardGA buyCardGA=new BuyCardGA();
+            BuyCardGA buyCardGA = new BuyCardGA();
             ActionSystem.Instance.Perform(buyCardGA);
         });
 
         // 显示当前金币
         UpdateMoneyDisplay(PlayerDataManager.Instance?.Money ?? 0);
-    }
-
-    public override void Init()
-    {
     }
 }

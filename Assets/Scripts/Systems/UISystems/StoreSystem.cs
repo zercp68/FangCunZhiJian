@@ -41,43 +41,11 @@ public class StoreSystem : Singleton<StoreSystem>
 
     public void setUp(List<CardData> ordinaryCardDatas, List<CardData> generalCardDatas, List<CardData> rareCardDatas)
     {
-        fillCardList(ordinaryCardDatas, ordinaryCards);
-        fillCardList(generalCardDatas, generalCards);
-        fillCardList(rareCardDatas, rareCards);
-
-
+        CardManager.Instance.fillCardList(ordinaryCardDatas, ordinaryCards);
+        CardManager.Instance.fillCardList(generalCardDatas, generalCards);
+        CardManager.Instance.fillCardList(rareCardDatas, rareCards);
     }
 
-    private void fillCardList(List<CardData> cardDatas, List<Card> targetList)
-    {
-        targetList.Clear();
-        foreach (var cardData in cardDatas)
-        {
-            Card card;
-
-            //关键：判断数据类型，创建对应的卡牌类型
-            if (cardData is ActionCardData actionData)
-            {
-                // 是行动卡数据 → 创建 ActionCard
-                card = new ActionCard(actionData);
-            }
-            else if (cardData is ElementCardData elementCardData)
-            {
-                card = new ElementCard(elementCardData);
-            }
-            else if (cardData is WeaponCardData weaponCardData)
-            {
-                card = new WeaponCard(weaponCardData);
-            }
-            else
-            {
-                Debug.Log("为普通牌，初始化错误，错误");
-                // 普通卡 → 创建基础 Card
-                card = new Card(cardData);
-            }
-            targetList.Add(card);
-        }
-    }
 
     // ---------- 新增：刷新商店（根据概率抽取） ----------
     /// <summary>
