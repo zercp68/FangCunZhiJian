@@ -211,7 +211,7 @@ public class StoreCardHolder : Singleton<StoreCardHolder>
         // 只计算1次是否在出牌区
         bool isOverPlayArea = playAreaRect != null && RectTransformUtility.RectangleContainsScreenPoint(playAreaRect, endScreenPos, uiCam);
 
-        Debug.Log($"[拖拽结束] 卡牌: {card?.CardName}, 屏幕坐标: {endScreenPos}, 是否在出牌区: {isOverPlayArea}");
+        Debug.Log($"[拖拽结束] 卡牌: {card?.CardId}, 屏幕坐标: {endScreenPos}, 是否在出牌区: {isOverPlayArea}");
 
         //关键：只有卡牌落在出牌区内，才计算范围、判定左右手
         if (isOverPlayArea && card != null)
@@ -370,4 +370,5 @@ public class StoreCardHolder : Singleton<StoreCardHolder>
         }
         return list;
     }
+
 }

@@ -10,7 +10,9 @@ public class SynthesisPanel : BasePanel
     {
 
         //初始化背包系统
+        bagSystem.Instance.setUP();
         //绑定按钮事件
+        SynthesisSystem.Instance.setup();
         //初始化第一页
     }
 

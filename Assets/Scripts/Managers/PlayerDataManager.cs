@@ -32,7 +32,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     private void Start()
     {
         InitNewGame();
-        UIManager.Instance.ShowPanel<MathPanel>();
+        UIManager.Instance.ShowPanel<SynthesisPanel>();
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     public void AddCardToDeck(Card card)
     {
         currentDeck.Add(card);
-        Debug.Log($"添加卡牌: {card.CardName}，当前卡组数量: {currentDeck.Count}");
+        Debug.Log($"添加卡牌: {card.CardId}，当前卡组数量: {currentDeck.Count}");
     }
 
     /// <summary>
@@ -118,7 +118,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     public bool RemoveCardFromDeck(Card card)
     {
         bool removed = currentDeck.Remove(card);
-        if (removed) Debug.Log($"移除卡牌: {card.CardName}");
+        if (removed) Debug.Log($"移除卡牌: {card.CardId}");
         return removed;
     }
 

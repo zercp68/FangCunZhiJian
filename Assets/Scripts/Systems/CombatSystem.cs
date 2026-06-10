@@ -259,7 +259,7 @@ public class CombatSystem
         bool hit = Random.value <= finalHitRate;
         if (!hit)
         {
-            Debug.Log($"{actionCard.CardName} Î´ÃüÖÐ£¡");
+            Debug.Log($"{actionCard.CardId} Î´ÃüÖÐ£¡");
             yield break;
         }
 

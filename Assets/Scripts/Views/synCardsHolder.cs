@@ -1,19 +1,15 @@
 using DG.Tweening;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class CardHolder : Singleton<HorizontalCardHolder>
+public class synCardsHolder : MonoBehaviour
 {
-    //卡牌环境
     private E_CardDisplayContext cardDisplayContext = E_CardDisplayContext.InMath;
-
-    [SerializeField] private CardLogic selectedCardLogic;
-    [SerializeReference] private CardLogic hoveredCardLogic;
+    public CardLogic selectedCardLogic;
+    public CardLogic hoveredCardLogic;
 
     [SerializeField] private GameObject slotPrefab;
     private RectTransform rect;
@@ -31,16 +27,21 @@ public class CardHolder : Singleton<HorizontalCardHolder>
     //出牌区域
     [SerializeField] private RectTransform playAreaRect;//拖入场景中的出牌区域
 
+
+    [Header("田字格 上下行容器")]
+    [SerializeField] private Transform oneCardRow;  //一张卡牌居中
+    [SerializeField] private Transform twoCardRow;  //一张卡牌居中
+    [SerializeField] private Transform topRow;     // 上排容器 TopRow
+    [SerializeField] private Transform bottomRow;  // 下排容器 BottomRow
+
+    // 田字格最大卡牌数量
+    private const int MaxCardCount = 4;
+
     /// <summary>
     /// 
     /// </summary>
     void Start()
     {
-        //for (int i = 0; i < cardsToSpawn; i++)
-        //{
-        //    Instantiate(slotPrefab, transform);
-        //}
-        //List<Card> cards = GetComponentsInChildren<Card>().ToList();
 
         rect = GetComponent<RectTransform>();
 
@@ -58,12 +59,14 @@ public class CardHolder : Singleton<HorizontalCardHolder>
         {
             cardLogic.PointerEnterEvent.AddListener(CardPointerEnter);
             cardLogic.PointerExitEvent.AddListener(CardPointerExit);
-            cardLogic.BeginDragEvent.AddListener(BeginDrag);
-            cardLogic.EndDragEvent.AddListener(EndDrag);
+            //cardLogic.BeginDragEvent.AddListener(BeginDrag);
+            //cardLogic.EndDragEvent.AddListener(EndDrag);
             cardLogic.name = cardCount.ToString();
             cardCount++;
         }
 
+        // 初始化布局
+        RearrangeGrid();
         StartCoroutine(Frame());
 
         IEnumerator Frame()
@@ -83,25 +86,39 @@ public class CardHolder : Singleton<HorizontalCardHolder>
     /// </summary>
     public IEnumerator AddCard(Card card, Transform drawPilePoint)
     {
-        GameObject freeSlot = GetFreeSlot();
+        Debug.Log($"[AddCard] 进入添加方法，当前卡牌数量：{cardLogics.Count}");
 
-        // 使用 Creator 创建卡牌
-        CardLogic newCardLogic = CardViewCreator.Instance.CreateCardVisual(card, freeSlot.transform, drawPilePoint, visualParent, cardDisplayContext);
-
-        // 3. 绑定槽位到 CardLogic（关键！后面弃牌要靠它销毁）
-        newCardLogic.slotGameObject = freeSlot;
-
-
-
-        // 添加到 cards 列表并绑定事件
-        RegisterCard(newCardLogic);
-
-        // 更新所有卡牌的视觉索引
-        foreach (CardLogic cardLogic in cardLogics)
+        if (cardLogics.Count >= MaxCardCount)
         {
-            if (cardLogic.cardVisual != null)
-                cardLogic.cardVisual.UpdateIndex(transform.childCount);
+            Debug.LogWarning("田字格已满，最多4张卡牌");
+            yield break;
         }
+
+        GameObject freeSlot = GetFreeSlot();
+        if (freeSlot == null)
+        {
+            Debug.LogError("[AddCard] 获取空闲槽位失败，freeSlot = null");
+            yield break;
+        }
+        Debug.Log($"[AddCard] 获取到空闲槽位：{freeSlot.name}");
+
+        CardLogic newCardLogic = CardViewCreator.Instance.CreateCardVisual(card, freeSlot.transform, drawPilePoint, visualParent, cardDisplayContext);
+        if (newCardLogic == null)
+        {
+            Debug.LogError("[AddCard] 创建 CardLogic 失败，返回空");
+            yield break;
+        }
+        Debug.Log($"[AddCard] 卡牌创建成功：{newCardLogic.name}");
+
+        newCardLogic.slotGameObject = freeSlot;
+        newCardLogic.canDrag = false;
+
+        RegisterCard(newCardLogic);
+        Debug.Log($"[AddCard] 卡牌注册完成，当前列表总数：{cardLogics.Count}");
+
+        
+        RearrangeGrid();
+        RefreshCardLayout();
 
         yield return new WaitForSeconds(0.15f);
     }
@@ -111,13 +128,18 @@ public class CardHolder : Singleton<HorizontalCardHolder>
     /// <param name="cardLogic"></param>
     public void RegisterCard(CardLogic cardLogic)
     {
-        this.cardLogics.Add(cardLogic);
-
+ 
+        if (cardLogic == null) return;
+        // 先移除再添加，防止重复注册
+        cardLogic.PointerEnterEvent.RemoveListener(CardPointerEnter);
         cardLogic.PointerEnterEvent.AddListener(CardPointerEnter);
+
+        cardLogic.PointerExitEvent.RemoveListener(CardPointerExit);
         cardLogic.PointerExitEvent.AddListener(CardPointerExit);
-        cardLogic.BeginDragEvent.AddListener(BeginDrag);
-        cardLogic.EndDragEvent.AddListener(EndDrag);
-        cardLogic.name = this.cardLogics.Count.ToString();
+
+        // 其他监听...
+        if (!cardLogics.Contains(cardLogic)) // 防止重复添加
+            cardLogics.Add(cardLogic);
     }
     #endregion
 
@@ -137,22 +159,12 @@ public class CardHolder : Singleton<HorizontalCardHolder>
 
         // 更新所有卡牌的视觉索引
         RefreshCardLayout();
-
+        // 删卡后重排
+        RearrangeGrid();
         return ReCardLogic;
     }
-    /// <summary>
-    /// 强制刷新卡牌容器布局（解决弃牌占位）
-    /// </summary>
-    public void RefreshCardLayout()
-    {
-        // 重新更新所有卡牌的索引
-        foreach (CardLogic cardLogic in cardLogics)
-        {
-            if (cardLogic == null || cardLogic.cardVisual == null) continue;
-            cardLogic.cardVisual.UpdateIndex(transform.childCount);
-        }
 
-    }
+
     /// <summary>
     /// 杰哥，移除卡牌，取消订阅事件
     /// </summary>
@@ -178,17 +190,81 @@ public class CardHolder : Singleton<HorizontalCardHolder>
     /// </summary>
     private GameObject GetFreeSlot()
     {
-        foreach (Transform slot in transform)
+        int total = cardLogics.Count;
+        Transform targetRow = GetTargetRowByCount(total);
+
+        // 优先复用空闲槽位
+        foreach (Transform slot in targetRow)
         {
-            // 额外检查：如果槽位即将被销毁，也跳过
-            if (slot == null || slot.gameObject == null) continue;
-            if (slot.childCount == 0)
-            {
+            if (slot != null && slot.childCount == 0)
                 return slot.gameObject;
-            }
         }
-        return Instantiate(slotPrefab, transform);
+        // 新建槽位
+        return Instantiate(slotPrefab, targetRow);
     }
+
+    /// <summary>
+    /// 根据卡牌总数，获取对应容器（规则：1→单卡行 / 2→上排 / 3、4→上+下）
+    /// </summary>
+    private Transform GetTargetRowByCount(int total)
+    {
+        return total switch
+        {
+            0 => oneCardRow,
+            1 => twoCardRow,
+            2 => bottomRow,
+            3 => bottomRow,
+            _ => null
+        };
+    }
+    /// <summary>
+    /// 全局田字格重排：所有卡牌统一归位到对应行（增/删/交换 必调用）
+    /// </summary>
+    private void RearrangeGrid()
+    {
+        int total = cardLogics.Count;
+        for (int i = 0; i < cardLogics.Count; i++)
+        {
+            CardLogic card = cardLogics[i];
+            if (card == null) continue;
+
+            Transform targetRow;
+            // 最终排布规则
+            if (total == 1)
+            {
+                targetRow = oneCardRow;
+            }
+            else if (total == 2)
+            {
+                targetRow = twoCardRow;
+                
+            }
+            else if(total==3)// 3 / 4 张：前2个上排，后2个下排
+            {
+                
+                targetRow = i < 1 ? topRow : bottomRow;
+            }
+            else 
+            {
+                targetRow = i < 2 ? topRow : bottomRow;
+            }
+
+            // 更换父物体 + 刷新槽位绑定
+            card.slotGameObject.transform.SetParent(targetRow, false);
+            card.transform.localPosition = Vector3.zero;
+        }
+    }
+
+    public void RefreshCardLayout()
+    {
+        foreach (CardLogic cardLogic in cardLogics)
+        {
+            if (cardLogic == null || cardLogic.cardVisual == null) continue;
+            cardLogic.cardVisual.UpdateIndex(transform.childCount);
+        }
+    }
+
+
 
 
     private void BeginDrag(CardLogic cardLogic)
@@ -233,7 +309,7 @@ public class CardHolder : Singleton<HorizontalCardHolder>
                 //显示装备武器牌提示框，是否装备
                 Debug.Log("请装备武器");
             }
-            else if (card is ActionCard actionCard|| card is ElementCard elementCard)
+            else if (card is ActionCard actionCard || card is ElementCard elementCard)
             {
                 //扣钱
                 //加到手牌中
@@ -272,15 +348,6 @@ public class CardHolder : Singleton<HorizontalCardHolder>
     {
         //新增：先把列表里已经被销毁的卡牌清掉（只加这一行）
         cardLogics.RemoveAll(card => card == null);
-        if (Input.GetKeyDown(KeyCode.Delete))
-        {
-            if (hoveredCardLogic != null)
-            {
-                Destroy(hoveredCardLogic.transform.parent.gameObject);
-                cardLogics.Remove(hoveredCardLogic);
-
-            }
-        }
 
         if (Input.GetMouseButtonDown(1))
         {
@@ -330,30 +397,25 @@ public class CardHolder : Singleton<HorizontalCardHolder>
         Transform currentSlot = currentCard.transform.parent;
         Transform targetSlot = targetCard.transform.parent;
 
-        Transform focusedParent = selectedCardLogic.transform.parent;
-        Transform crossedParent = cardLogics[index].transform.parent;
+        targetCard.transform.SetParent(currentSlot);
+        targetCard.transform.localPosition = targetCard.selected ? new Vector3(0, targetCard.selectionOffset, 0) : Vector3.zero;
+        currentCard.transform.SetParent(targetSlot);
 
-        cardLogics[index].transform.SetParent(focusedParent);
-        cardLogics[index].transform.localPosition = cardLogics[index].selected ? new Vector3(0, cardLogics[index].selectionOffset, 0) : Vector3.zero;
-        selectedCardLogic.transform.SetParent(crossedParent);
-
-        // 【关键修复】交换后 实时更新卡槽绑定！！！
+        // 更新槽位引用
         currentCard.slotGameObject = targetSlot.gameObject;
         targetCard.slotGameObject = currentSlot.gameObject;
 
         isCrossing = false;
 
-        if (cardLogics[index].cardVisual == null)
-            return;
-
-        bool swapIsRight = cardLogics[index].ParentIndex() > selectedCardLogic.ParentIndex();
-        cardLogics[index].cardVisual.Swap(swapIsRight ? -1 : 1);
-
-        //Updated Visual Indexes
-        foreach (CardLogic cardLogic in cardLogics)
+        if (targetCard.cardVisual != null)
         {
-            cardLogic.cardVisual.UpdateIndex(transform.childCount);
+            bool swapIsRight = targetCard.ParentIndex() > currentCard.ParentIndex();
+            targetCard.cardVisual.Swap(swapIsRight ? -1 : 1);
         }
+
+        RefreshCardLayout();
+        // 交换后重排
+        RearrangeGrid();
     }
 
     /// <summary>

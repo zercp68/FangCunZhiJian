@@ -7,7 +7,7 @@ public class Card
 
     protected readonly CardData data;
     public CardData CardData => data;
-    public string CardName => data.CardName;
+    public int CardId => data.cardId;
     public E_CardType E_CardType => data.CardType;
     public string Description => data.Description;
     public Sprite Image => data.Image;

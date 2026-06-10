@@ -106,7 +106,7 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
         }
         else
         {
-            Debug.LogError("场景中没有 Tag 为 'PlayArea' 的物体！请检查设置");
+            //Debug.LogError("场景中没有 Tag 为 'PlayArea' 的物体！请检查设置");
         }
         // 如果已经通过外部创建了视觉，就不再创建
         if (cardVisual != null) return;
@@ -202,7 +202,6 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
     {
         if (eventData.button != PointerEventData.InputButton.Left)
             return;
-
         PointerDownEvent.Invoke(this);
         pointerDownTime = Time.time;
 
@@ -217,7 +216,7 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
             return;
 
         // ======================
-        
+
         cardVisual.HideDescription();
         // ======================
 

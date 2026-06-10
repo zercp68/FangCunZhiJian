@@ -8,8 +8,8 @@ using UnityEngine.UI;
 public class BagCardsHolder : MonoBehaviour
 {
     private E_CardDisplayContext cardDisplayContext = E_CardDisplayContext.InMath;
-    [SerializeField] private CardLogic selectedCardLogic;
-    [SerializeReference] private CardLogic hoveredCardLogic;
+     public CardLogic selectedCardLogic;
+     public CardLogic hoveredCardLogic;
 
     [SerializeField] private GameObject slotPrefab;
     private RectTransform rect;
@@ -204,7 +204,7 @@ public class BagCardsHolder : MonoBehaviour
         // 只计算1次是否在出牌区
         bool isOverPlayArea = playAreaRect != null && RectTransformUtility.RectangleContainsScreenPoint(playAreaRect, endScreenPos, uiCam);
 
-        Debug.Log($"[拖拽结束] 卡牌: {card?.CardName}, 屏幕坐标: {endScreenPos}, 是否在出牌区: {isOverPlayArea}");
+        Debug.Log($"[拖拽结束] 卡牌: {card?.CardId}, 屏幕坐标: {endScreenPos}, 是否在出牌区: {isOverPlayArea}");
 
         //关键：只有卡牌落在出牌区内，才计算范围、判定左右手
         if (isOverPlayArea && card != null)

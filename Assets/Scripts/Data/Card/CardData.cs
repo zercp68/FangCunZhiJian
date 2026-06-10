@@ -41,7 +41,7 @@ public class CardData : ScriptableObject
     /// <summary>
     /// ¿¨ÅÆÃû×Ö
     /// </summary>
-    [field:SerializeField]public string CardName { get;  set; }
+    [field:SerializeField]public int cardId { get;  set; }
     /// <summary>
     /// ¿¨ÅÆÀàĞÍ
     /// </summary>

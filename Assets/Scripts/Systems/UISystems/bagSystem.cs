@@ -5,101 +5,244 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class bagSystem : MonoBehaviour
+enum E_bagCardType
+{
+    allCard,
+    actCard,
+    eleCard,
+    weaCard,
+}
+
+public class bagSystem : Singleton<bagSystem>
 {
 
     [Header("toggle")]
     public Toggle dotPrefab;
     public List<Toggle> dots;
     public ToggleGroup toggleGroup;
-    private int currentPage = 0;
 
     public Button btnPre;              // 上一页按钮
     public Button btnNext;            // 下一页按钮
+    public Button btnAllCard;
+    public Button btnActCard;
+    public Button btnEleCard;
+    public Button btnWeaCard;
 
     [Header("设置")]
-    public Transform BagCardsView;
+    public BagCardsHolder BagCardsHolder;
     private List<Card> currentCards;
+    private List<Card> AllCards;
+    private List<Card> ActCards;
+    private List<Card> EleCards;
+    private List<Card> WeaCards;
 
-    [Header("预制体")]
-    public GameObject pagePrefab;      // 单个页面内容的预制体（比如物品格子容器）
 
     [Header("配置")]
-    public int totalItemCount;    // 总共有多少个物品（用来计算需要多少页）
+    private int nowTotalCardCount;    // 现在总共有多少个物品（用来计算需要多少页）
     public int itemsPerPage = 16;      // 每页放多少个Card
-    private int pageNum;
+    private E_bagCardType e_NowBagCardType = E_bagCardType.allCard;
     private int currentPageIndex=0;
+    private int maxPageCount;
 
     [SerializeField] private Transform drawPilePoint;
     [SerializeField] private Transform discardPilePoint;
 
-    private List<GameObject> pages = new List<GameObject>();
+    // 全局翻页锁
+    private bool _isPageChanging = false;
+    private const float LockDuration = 0.2f;
+
+
+    private void OnEnable()
+    {
+        ActionSystem.AttachPerformer<UpdatePanelGA>(UpdatePanelPerformer);
+    }
+
+    private void OnDisable()
+    {
+        ActionSystem.DetachPerformer<UpdatePanelGA>();
+
+    }
+
+
 
     public void setUP()
     {
-        //获取当前卡牌
+        //获取所有手牌卡牌
         setupCards();
-        //计算页数
-        GeneratePages();
+        setupBtnCard();
+        //将当前牌初始化为当前所有手牌
+        updateCurrentCards(AllCards);
         //给页数，初始化toggle数量
         GenerateDots();
+        // 绑定分页按钮事件
+        setupBtnPage();
+
+        // 初始化打开第一页
+        SwitchPage(0);
+        UpdatePanelGA firstPage = new UpdatePanelGA(0, Mathf.Min(itemsPerPage, currentCards.Count));
+        ActionSystem.Instance.Perform(firstPage);
     }
 
 
 
     /// <summary>
-    /// 得到当前卡牌
+    /// 得到当前所有手牌卡牌
     /// </summary>
     public void setupCards()
     {
-        // 1. 初始化deckCards（防止首次使用时为null）
-        if (currentCards == null)
-        {
-            currentCards = new List<Card>();
-        }
-        else
-        {
-            // 2. 清空旧数据（避免叠加）
-            currentCards.Clear();
-        }
+        // 强制清空+重新初始化，确保数据最新
+        AllCards = new List<Card>();
+        ActCards = new List<Card>();
+        EleCards = new List<Card>();
+        WeaCards = new List<Card>();
         // 3. 安全获取当前卡组副本并赋值（增加空引用检查）
         if (PlayerDataManager.Instance != null)
         {
             List<Card> deckCopy = PlayerDataManager.Instance.GetCurrentDeckCopy();
-            currentCards.AddRange(deckCopy); // 赋值核心逻辑（也可直接 deckCards = deckCopy;）
+            AllCards.AddRange(deckCopy); // 赋值核心逻辑（也可直接 deckCards = deckCopy;）
+            CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, WeaCards);
             Debug.Log($"MatchSetup: 从PlayerDataManager获取到卡组数量: {deckCopy.Count}"); // 新增日志
         }
         else
         {
             Debug.LogError("PlayerDataManager.Instance 为空，请检查是否挂载该单例！");
         }
-        totalItemCount = currentCards.Count;
     }
 
+    private IEnumerator UpdatePanelPerformer(UpdatePanelGA updatePanelGA)
+    {
+        // 加载开始：禁用所有圆点
+        SetAllInteractable(false);
+
+        //清空当前界面
+        yield return ClearAllCard();
+        //生成卡牌
+
+        for (int i =updatePanelGA.beginIndex;i<updatePanelGA.endIndex;i++) 
+        { 
+            Card card = currentCards[i];
+            // 调用Holder.addCard方法就行        //创建卡牌UI(从牌堆位置生成)
+            yield return BagCardsHolder.AddCard(card, drawPilePoint);
+        }
+
+        // 加载完成：解锁 + 恢复圆点点击
+        Invoke(nameof(ResetPageLock), LockDuration);
+        yield break;
+    }
+    /// <summary> 批量弃牌 / 移除卡牌 协程 </summary>
+    public IEnumerator DisBagCardViewPerformer(List<CardLogic> cardLogics)
+    {
+        // 正在操作中直接拦截
+        if (_isPageChanging) yield break;
+
+        _isPageChanging = true;
+        SetAllInteractable(false);
+
+        foreach (var cardLogic in cardLogics)
+        {
+            if (cardLogic == null) continue;
+
+            // 全局卡组移除卡牌
+            AllCards.Remove(cardLogic.card);
+            // 等待单张卡牌销毁+动画完成
+            yield return DiscardCard(cardLogic);
+        }
+
+        // 重新按类型拆分卡组
+        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, WeaCards);
+
+        // 弃牌后同样刷新当前页，自动补下一页卡牌进来填满空位
+        
+        switch (e_NowBagCardType)
+        {
+            case E_bagCardType.allCard:
+                SwitchCardType(AllCards);
+                break;
+            case E_bagCardType.actCard:
+                SwitchCardType(ActCards);
+                break;
+            case E_bagCardType.eleCard:
+                SwitchCardType(EleCards);
+                break;
+            case E_bagCardType.weaCard:
+                SwitchCardType(WeaCards);
+                break;
+        }
+        yield return new WaitForSeconds(LockDuration);
+        ResetPageLock();
+
+        UpdatePanelGA firstPage = new UpdatePanelGA(0, Mathf.Min(itemsPerPage, currentCards.Count));
+        ActionSystem.Instance.AddReaction(firstPage);
+    }
+    /// <summary> 添加单张卡牌协程 </summary>
+    public IEnumerator AddBagCardViewPerformer(List<Card> cards)
+    {
+        // 防重复执行
+        if (_isPageChanging) yield break;
+
+        _isPageChanging = true;
+        SetAllInteractable(false);
+
+        // 1. 把卡牌加入总卡组
+        AllCards.AddRange(cards);
+        // 2. 重新按类型拆分卡牌
+        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, WeaCards);
+
+
+        // 3. 刷新当前分类页面（关键！重新加载当前页，补全空位）
+        switch (e_NowBagCardType)
+        {
+            case E_bagCardType.allCard:
+                SwitchCardType(AllCards);
+                break;
+            case E_bagCardType.actCard:
+                SwitchCardType(ActCards);
+                break;
+            case E_bagCardType.eleCard:
+                SwitchCardType(EleCards);
+                break;
+            case E_bagCardType.weaCard:
+                SwitchCardType(WeaCards);
+                break;
+        }
+
+        // 延时解锁，恢复交互
+        yield return new WaitForSeconds(LockDuration);
+        ResetPageLock();
+        UpdatePanelGA firstPage = new UpdatePanelGA(0, Mathf.Min(itemsPerPage, currentCards.Count));
+        ActionSystem.Instance.AddReaction(firstPage);
+    }
+
+
     /// <summary>
-    /// 根据物品总数和每页数量，动态生成所有页面
+    /// 统一切换卡牌分类（核心入口）
+    /// </summary>
+    private void SwitchCardType(List<Card> targetCards)
+    {
+        // 更新当前显示卡牌
+        updateCurrentCards(targetCards);
+        // 重新生成分页圆点
+        GenerateDots();
+        // 刷新左右翻页按钮位置（跟随圆点整体宽度变化）
+        setupBtnPage();
+
+        // 无卡牌直接返回
+        if (maxPageCount <= 0) return;
+
+        // 跳转到第一页并加载界面
+        SwitchPage(0);
+    }
+
+
+    /// <summary>
+    /// 根据物品更新总数和每页数量
     /// </summary>
     void GeneratePages()
     {
-        // 先清空旧的页面
-        foreach (var p in pages) Destroy(p);
-        pages.Clear();
-
-        // 计算需要多少页
-        int pageCount = Mathf.CeilToInt((float)totalItemCount / itemsPerPage);
-
-        for (int i = 0; i < pageCount; i++)
-        {
-            // 实例化一个页面预制体，父物体是BagHolder
-            GameObject page = Instantiate(pagePrefab, BagCardsView);
-            page.name = $"Page_{i}";
-            page.SetActive(false); // 初始隐藏
-
-            // 这里可以给页面传数据，比如加载第 i 页的物品
-            // LoadPageData(page, i);
-
-            pages.Add(page);
-        }
+        nowTotalCardCount = currentCards.Count;
+        // 直接计算总页数
+        maxPageCount = Mathf.CeilToInt((float)nowTotalCardCount / itemsPerPage);
+        currentPageIndex = 0;
     }
 
 
@@ -112,80 +255,170 @@ public class bagSystem : MonoBehaviour
         foreach (var d in dots) Destroy(d.gameObject);
         dots.Clear();
 
-        for (int i = 0; i < pages.Count; i++)
+        for (int i = 0; i < maxPageCount; i++)
         {
             Toggle dot = Instantiate(dotPrefab, toggleGroup.transform);
             dot.group = toggleGroup;
             dot.name = $"Dot_{i}";
 
             // 点击圆点跳转到对应页
-            int index = i;
+            int index = i; // 局部变量捕获
             dot.onValueChanged.AddListener(isOn =>
             {
-                //if (isOn) SwitchPage(index);
-                //写跳转的逻辑
+                // 1. 防抖拦截 + 非选中拦截
+                if (!isOn || _isPageChanging) return;
+
+                // 加锁
+                _isPageChanging = true;
+
+                int begin = index * itemsPerPage;
+                int end = Mathf.Min((index + 1) * itemsPerPage, currentCards.Count);
+                UpdatePanelGA updatePanelGA = new UpdatePanelGA(begin, end);
+                ActionSystem.Instance.Perform(updatePanelGA);
+
+                // 只更新页码，不再二次触发Toggle事件（切断循环）
+                currentPageIndex = index;
             });
 
             dots.Add(dot);
         }
     }
     /// <summary>
-    /// 切换到指定页码
+    /// 切换到指定页码,激活dot
     /// </summary>
     void SwitchPage(int pageIndex)
     {
-        if (pageIndex < 0 || pageIndex >= pages.Count) return;
+        if (pageIndex < 0 || pageIndex >= maxPageCount || _isPageChanging || dots.Count == 0)
+            return;
 
         currentPageIndex = pageIndex;
-
-        // 隐藏所有页面，显示当前页
-        for (int i = 0; i < pages.Count; i++)
-        {
-            pages[i].SetActive(i == currentPageIndex);
-        }
-
-        // 同步圆点选中状态
         for (int i = 0; i < dots.Count; i++)
         {
-            dots[i].SetIsOnWithoutNotify(i == currentPageIndex);
+            if (dots[i] == null) continue; // 空值保护
+            if (i == currentPageIndex)
+                dots[i].isOn = true;
+            else
+                dots[i].SetIsOnWithoutNotify(false);
         }
+    }
+
+
+    void setupBtnPage()
+    {
+        btnPre.onClick.AddListener(OnPrePage);
+        btnNext.onClick.AddListener(OnNextPage);
+
+        // ===== 关键：强制刷新 ToggleGroup 的布局 =====
+        RectTransform toggleGroupRect = toggleGroup.transform as RectTransform;
+        LayoutRebuilder.ForceRebuildLayoutImmediate(toggleGroupRect);
+        // 现在再取宽度，就能拿到正确值了
+        float toggleGroupWidth = toggleGroupRect.rect.width;
+
+        RectTransform btnPreRect = btnPre.transform as RectTransform;
+        RectTransform btnNextRect = btnNext.transform as RectTransform;
+
+        float buttonOffset = 30f;
+        if (btnPreRect != null)
+        {
+            float btnPreX = -toggleGroupWidth / 2f - buttonOffset;
+            btnPreRect.anchoredPosition = new Vector2(btnPreX, btnPreRect.anchoredPosition.y);
+        }
+        if (btnNext != null)
+        {
+            float btnNextX = toggleGroupWidth / 2f + buttonOffset;
+            btnNextRect.anchoredPosition = new Vector2(btnNextX, btnNextRect.anchoredPosition.y);
+        }
+        Debug.Log("ToggleGroup宽度：" + toggleGroupWidth);
+        Debug.Log("btnPre位置：" + btnPreRect.anchoredPosition);
     }
     /// <summary>
     /// 上一页
     /// </summary>
     void OnPrePage()
     {
-        int next = currentPageIndex - 1;
-        if (next < 0) next = pages.Count - 1; // 循环翻页，不需要可以删掉这行
-        SwitchPage(next);
+        int pre = currentPageIndex - 1;
+        if (pre < 0) pre = maxPageCount - 1;
+        SwitchPage(pre);
     }
-
     /// <summary>
     /// 下一页
     /// </summary>
     void OnNextPage()
     {
         int next = currentPageIndex + 1;
-        if (next >= pages.Count) next = 0; // 循环翻页，不需要可以删掉这行
+        if (next >= maxPageCount) next = 0;
         SwitchPage(next);
     }
 
-
-    #region 卡牌工具
-    /// <summary>
-    /// 抽取单张牌
-    /// </summary>
-    /// <returns></returns>
-   /* private IEnumerator DrawCard()
+    void ResetPageLock()
     {
-        //从牌堆中随机抽一张牌（拓展方法）
-        Card card = currentCards.Draw();
-        // 调用Holder.addCard方法就行        //创建卡牌UI(从牌堆位置生成)
-        yield return pagePrefab.AddCard(card, drawPilePoint);
+        _isPageChanging = false;
+        // 恢复所有圆点可点击
+        SetAllInteractable(true);
     }
 
     /// <summary>
-    /// 弃掉一张卡牌（播放移动到弃牌堆的动画，然后销毁）
+    /// 统一控制：圆点 + 左右按钮 是否可点击
+    /// </summary>
+    void SetAllInteractable(bool enable)
+    {
+        // 圆点
+        foreach (var dot in dots)
+        {
+            if (dot != null)
+                dot.interactable = enable;
+        }
+        // 左右箭头按钮
+        if (btnPre != null) btnPre.interactable = enable;
+        if (btnNext != null) btnNext.interactable = enable;
+    }
+
+    void updateCurrentCards(List<Card> cards)
+    {
+        if (currentCards==null)
+        {
+            currentCards = new List<Card>();
+        }
+        currentCards.Clear();
+
+        currentCards.AddRange(cards);
+        GeneratePages();
+    }
+
+    void setupBtnCard()
+    {
+        btnAllCard.onClick.RemoveAllListeners();
+        btnActCard.onClick.RemoveAllListeners();
+        btnEleCard.onClick.RemoveAllListeners();
+        btnWeaCard.onClick.RemoveAllListeners();
+
+        btnAllCard.onClick.AddListener(() =>
+        {
+            e_NowBagCardType = E_bagCardType.allCard;
+            SwitchCardType(AllCards);
+        });
+        btnActCard.onClick.AddListener(() => 
+        {
+            e_NowBagCardType = E_bagCardType.actCard;
+            SwitchCardType(ActCards);
+        });
+        btnEleCard.onClick.AddListener(() => 
+        {
+            e_NowBagCardType = E_bagCardType.eleCard;
+            SwitchCardType(EleCards);
+        });
+        btnWeaCard.onClick.AddListener(() => 
+        {
+            e_NowBagCardType = E_bagCardType.weaCard;
+            SwitchCardType(WeaCards);
+        });
+    }
+
+    #region 卡牌工具
+
+
+    /// <summary>
+    /// 销毁一张卡牌（播放移动到弃牌堆的动画，然后销毁）
     /// </summary>
     private IEnumerator DiscardCard(CardLogic cardLogic)
     {
@@ -194,7 +427,7 @@ public class bagSystem : MonoBehaviour
         // 【第一步】先从手牌系统移除（必须最先做！）
         currentCards.Remove(cardLogic.card);
 
-        bagCardsHolder.RemoveCard(cardLogic.card);
+        BagCardsHolder.RemoveCard(cardLogic.card);
 
 
         // 【第二步】播放动画
@@ -219,6 +452,44 @@ public class bagSystem : MonoBehaviour
         }
 
         Destroy(cardLogic.gameObject);
-    }*/
+    }
+
+
+
+    /// <summary>
+    /// 清空当前卡牌界面（播放移动到弃牌堆的动画，然后销毁）
+    /// </summary>
+    public IEnumerator ClearAllCard()
+    {
+        // 关键：拷贝副本遍历，杜绝遍历中原集合被修改
+        List<CardLogic> tempCardList = new List<CardLogic>(BagCardsHolder.cardLogics);
+
+        foreach (var cardLogic in tempCardList)
+        {
+            if (cardLogic == null) continue;
+
+            BagCardsHolder.RemoveCard(cardLogic.card);
+
+            if (cardLogic.cardVisual != null)
+            {
+                Destroy(cardLogic.cardVisual.gameObject);
+            }
+            if (cardLogic.slotGameObject != null)
+            {
+                Destroy(cardLogic.slotGameObject);
+            }
+            Destroy(cardLogic.gameObject);
+
+            // 如果需要逐张销毁带间隔动画，可以加延时
+             //yield return new WaitForSeconds(0.1f);
+        }
+
+        // 最后统一清空原集合
+        BagCardsHolder.cardLogics.Clear();
+        BagCardsHolder.selectedCardLogic = null;
+        BagCardsHolder.hoveredCardLogic = null;
+
+        yield return null;
+    }
     #endregion
 }
