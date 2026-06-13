@@ -29,34 +29,62 @@ public class CardManager : Singleton<CardManager>
     [SerializeField] private List<CardData> allCardDatas;
 
 
-    public void fillCardList(List<CardData> cardDatas, List<Card> targetList)
+    /// <summary>
+    /// 泛型：根据CardData列表生成对应Card实例，填充到目标集合
+    /// TData : 卡牌数据基类(可传CardData/WeaponCardData等子类)
+    /// TCard : 卡牌实体基类(可传Card/WeaponCard等子类)
+    /// </summary>
+    public void fillCardList<TData, TCard>(List<TData> cardDatas, List<TCard> targetList)
+        where TData : CardData    // 约束：必须是CardData及其子类
+        where TCard : Card        // 约束：必须是Card及其子类
     {
-        targetList.Clear();
-        foreach (var cardData in cardDatas)
+        if (cardDatas == null)
         {
-            Card card;
+            Debug.LogError("cardDatas 列表为空！");
+            targetList.Clear();
+            return;
+        }
+        if (targetList == null)
+        {
+            Debug.LogError("targetList 目标集合为空！");
+            return;
+        }
 
-            //关键：判断数据类型，创建对应的卡牌类型
-            if (cardData is ActionCardData actionData)
+        targetList.Clear();
+
+        foreach (var data in cardDatas)
+        {
+            Card card = null;
+
+            // 根据数据类型 创建对应卡牌实体
+            if (data is ActionCardData actionData)
             {
-                // 是行动卡数据 → 创建 ActionCard
                 card = new ActionCard(actionData);
             }
-            else if (cardData is ElementCardData elementCardData)
+            else if (data is ElementCardData elementData)
             {
-                card = new ElementCard(elementCardData);
+                card = new ElementCard(elementData);
             }
-            else if (cardData is WeaponCardData weaponCardData)
+            else if (data is WeaponCardData weaponData)
             {
-                card = new WeaponCard(weaponCardData);
+                card = new WeaponCard(weaponData);
             }
             else
             {
-                Debug.Log("为普通牌，初始化错误，错误");
-                // 普通卡 → 创建基础 Card
-                card = new Card(cardData);
+                // 基础CardData → 基础Card
+                card = new Card(data);
+                Debug.LogWarning($"未知卡牌类型，使用基础Card实例: {data.name}");
             }
-            targetList.Add(card);
+
+            // 安全强转（泛型约束保证一定能转）
+            if (card is TCard tCard)
+            {
+                targetList.Add(tCard);
+            }
+            else
+            {
+                Debug.LogError($"卡牌类型不匹配！预期: {typeof(TCard).Name}，实际: {card.GetType().Name}");
+            }
         }
     }
     /// <summary>

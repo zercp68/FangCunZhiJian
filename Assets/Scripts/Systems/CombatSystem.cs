@@ -136,7 +136,7 @@ public class CombatSystem
     /// <summary>
     /// 装备武器（武器牌不进入手牌，直接调用此方法）
     /// </summary>
-    public void EquipWeapon(WeaponCard weapon)
+    public void setupWeapon(WeaponCard weapon)
     {
         CurrentWeapon = weapon;
         if (CurrentWeapon == null)

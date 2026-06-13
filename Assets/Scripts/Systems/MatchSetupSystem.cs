@@ -56,7 +56,7 @@ public class MatchSetupSystem : MonoBehaviour
         while (ActionSystem.Instance.IsBusy) yield return null;
 
         WeaponCard weaponCard = WeaponSystem.Instance.Setup(weaponData);
-        SetWeaponGA setWeaponGA = new(weaponCard);
+        EquipWeaponGA setWeaponGA = new(weaponCard);
         ActionSystem.Instance.Perform(setWeaponGA);
         while (ActionSystem.Instance.IsBusy) yield return null;
 

@@ -24,7 +24,7 @@ public class WeaponSystem : Singleton<WeaponSystem>
     private void OnEnable()
     {
 
-        ActionSystem.AttachPerformer<SetWeaponGA>(SetWeaponPerformer);
+        ActionSystem.AttachPerformer<EquipWeaponGA>(equipWeaponPerformer);
         ActionSystem.AttachPerformer<WeaponAddElementGA>(WeaponAddElementPerformer);
         ActionSystem.AttachPerformer<WeaponActionGA>(WeaponActionPerformer);
         ActionSystem.SubscribeReaction<EnemyTurnGA>(EnemyTurnPrePerformer, ReactionTiming.PRE);
@@ -32,7 +32,7 @@ public class WeaponSystem : Singleton<WeaponSystem>
     }
     private void OnDisable()
     {
-        ActionSystem.DetachPerformer<SetWeaponGA>();
+        ActionSystem.DetachPerformer<EquipWeaponGA>();
         ActionSystem.DetachPerformer<WeaponAddElementGA>();
         ActionSystem.DetachPerformer<WeaponActionGA>();
         ActionSystem.UnsubscribeReaction<EnemyTurnGA>(EnemyTurnPrePerformer, ReactionTiming.PRE);
@@ -71,27 +71,27 @@ public class WeaponSystem : Singleton<WeaponSystem>
     /// </summary>
     /// <param name="weaponCard"></param>
     /// <returns></returns>
-    public IEnumerator SetWeaponPerformer(SetWeaponGA SetWeaponGA)
+    public IEnumerator equipWeaponPerformer(EquipWeaponGA equipWeaponGA)
     {
         Debug.Log("执行");
-        switch (SetWeaponGA.WeaponCard.E_WeaponHand)
+        switch (equipWeaponGA.WeaponCard.E_WeaponHand)
         {
             case E_WeaponHand.Left:
-                currentLeftWeapon = SetWeaponGA.WeaponCard;
+                currentLeftWeapon = equipWeaponGA.WeaponCard;
                 if (currentLeftWeapon != null)
-                    leftCombatSystem.EquipWeapon(currentLeftWeapon); // 绑定武器到战斗系统
+                    leftCombatSystem.setupWeapon(currentLeftWeapon); // 绑定武器到战斗系统
                 if (LeftWeaponView != null)
                     yield return LeftWeaponView.creatWeapon(currentLeftWeapon);
                 break;
             case E_WeaponHand.Right:
-                currentRightWeapon = SetWeaponGA.WeaponCard;
+                currentRightWeapon = equipWeaponGA.WeaponCard;
                 if (currentRightWeapon != null)
-                    rightCombatSystem.EquipWeapon(currentRightWeapon);
+                    rightCombatSystem.setupWeapon(currentRightWeapon);
                 if (RightWeaponView != null)
                     yield return RightWeaponView.creatWeapon(currentRightWeapon);
                 break;
         }
-        SetWeaponGA.WeaponCard.IsWeaponEquipped = true;
+        equipWeaponGA.WeaponCard.IsWeaponEquipped = true;
     }
 
 
@@ -213,9 +213,5 @@ public class WeaponSystem : Singleton<WeaponSystem>
     }
 
 
-    #region 计算工具系统
 
-
-
-    #endregion
 }

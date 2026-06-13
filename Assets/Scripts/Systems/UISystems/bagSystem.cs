@@ -118,17 +118,57 @@ public class bagSystem : Singleton<bagSystem>
         yield return ClearAllCard();
         //生成卡牌
 
-        for (int i =updatePanelGA.beginIndex;i<updatePanelGA.endIndex;i++) 
-        { 
+        // 修复：增加索引范围校验，避免越界
+        int safeBegin = Mathf.Max(0, updatePanelGA.beginIndex);
+        int safeEnd = Mathf.Min(updatePanelGA.endIndex, currentCards.Count);
+        // 边界防护：如果起始索引大于列表长度，直接退出
+        if (safeBegin >= currentCards.Count)
+        {
+            ResetPageLock();
+            yield break;
+        }
+
+        for (int i = safeBegin; i < safeEnd; i++)
+        {
+            // 二次防护：防止并发修改导致的越界
+            if (i < 0 || i >= currentCards.Count)
+            {
+                Debug.LogWarning($"索引{i}越界，currentCards长度：{currentCards.Count}");
+                continue;
+            }
             Card card = currentCards[i];
-            // 调用Holder.addCard方法就行        //创建卡牌UI(从牌堆位置生成)
+
             yield return BagCardsHolder.AddCard(card, drawPilePoint);
         }
 
-        // 加载完成：解锁 + 恢复圆点点击
+
         Invoke(nameof(ResetPageLock), LockDuration);
         yield break;
     }
+
+    /// <summary> 
+    /// 刷新背包卡牌视图（重读数据+保留当前分类/页码）
+    /// </summary>
+    public IEnumerator RefreshBagView()
+    {
+        if (_isPageChanging) yield break;
+
+        _isPageChanging = true;
+        SetAllInteractable(false);
+
+        // 重新读取卡组并分类
+        setupCards();
+        // 刷新当前页面
+        RefreshCurrentBagView();
+
+        yield return new WaitForSeconds(LockDuration);
+        ResetPageLock();
+
+        UpdatePanelGA firstPage = new UpdatePanelGA(0, Mathf.Min(itemsPerPage, currentCards.Count));
+        ActionSystem.Instance.AddReaction(firstPage);
+    }
+
+
     /// <summary> 批量弃牌 / 移除卡牌 协程 </summary>
     public IEnumerator DisBagCardViewPerformer(List<CardLogic> cardLogics)
     {
@@ -152,22 +192,8 @@ public class bagSystem : Singleton<bagSystem>
         CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, WeaCards);
 
         // 弃牌后同样刷新当前页，自动补下一页卡牌进来填满空位
-        
-        switch (e_NowBagCardType)
-        {
-            case E_bagCardType.allCard:
-                SwitchCardType(AllCards);
-                break;
-            case E_bagCardType.actCard:
-                SwitchCardType(ActCards);
-                break;
-            case E_bagCardType.eleCard:
-                SwitchCardType(EleCards);
-                break;
-            case E_bagCardType.weaCard:
-                SwitchCardType(WeaCards);
-                break;
-        }
+
+        RefreshCurrentBagView();
         yield return new WaitForSeconds(LockDuration);
         ResetPageLock();
 
@@ -190,21 +216,7 @@ public class bagSystem : Singleton<bagSystem>
 
 
         // 3. 刷新当前分类页面（关键！重新加载当前页，补全空位）
-        switch (e_NowBagCardType)
-        {
-            case E_bagCardType.allCard:
-                SwitchCardType(AllCards);
-                break;
-            case E_bagCardType.actCard:
-                SwitchCardType(ActCards);
-                break;
-            case E_bagCardType.eleCard:
-                SwitchCardType(EleCards);
-                break;
-            case E_bagCardType.weaCard:
-                SwitchCardType(WeaCards);
-                break;
-        }
+        RefreshCurrentBagView();
 
         // 延时解锁，恢复交互
         yield return new WaitForSeconds(LockDuration);
@@ -226,23 +238,56 @@ public class bagSystem : Singleton<bagSystem>
         // 刷新左右翻页按钮位置（跟随圆点整体宽度变化）
         setupBtnPage();
 
-        // 无卡牌直接返回
-        if (maxPageCount <= 0) return;
+        if (maxPageCount <= 0)
+        {
+            // 修复：空列表时清空UI
+            currentPageIndex = 0;
+            UpdatePanelGA emptyPanel = new UpdatePanelGA(0, 0);
+            ActionSystem.Instance.Perform(emptyPanel);
+            return;
+        }
 
-        // 跳转到第一页并加载界面
+        // 修复：强制重置到第0页，避免旧分页索引越界
         SwitchPage(0);
+        // 修复：重新计算endIndex，基于新的currentCards长度
+        int newEndIndex = Mathf.Min(itemsPerPage, currentCards.Count);
+        UpdatePanelGA firstPage = new UpdatePanelGA(0, newEndIndex);
+        ActionSystem.Instance.Perform(firstPage);
     }
-
+    /// <summary>
+    /// 局部刷新背包：重读数据 + 刷新当前分类页面（替代 setUP）
+    /// </summary>
+    public void RefreshCurrentBagView()
+    {
+        if (_isPageChanging) return;
+        // 根据当前选中的分类，刷新视图
+        switch (e_NowBagCardType)
+        {
+            case E_bagCardType.allCard:
+                SwitchCardType(AllCards);
+                break;
+            case E_bagCardType.actCard:
+                SwitchCardType(ActCards);
+                break;
+            case E_bagCardType.eleCard:
+                SwitchCardType(EleCards);
+                break;
+            case E_bagCardType.weaCard:
+                SwitchCardType(WeaCards);
+                break;
+        }
+    }
 
     /// <summary>
     /// 根据物品更新总数和每页数量
     /// </summary>
     void GeneratePages()
     {
-        nowTotalCardCount = currentCards.Count;
-        // 直接计算总页数
-        maxPageCount = Mathf.CeilToInt((float)nowTotalCardCount / itemsPerPage);
-        currentPageIndex = 0;
+        nowTotalCardCount = currentCards?.Count ?? 0;
+        // 修复：避免除以0或负数
+        if (itemsPerPage <= 0) itemsPerPage = 16; // 兜底默认值
+        maxPageCount = nowTotalCardCount <= 0 ? 0 : Mathf.CeilToInt((float)nowTotalCardCount / itemsPerPage);
+        currentPageIndex = Mathf.Clamp(currentPageIndex, 0, maxPageCount - 1); // 限制索引范围
     }
 
 

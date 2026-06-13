@@ -1,6 +1,7 @@
 using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -26,12 +27,13 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
     {
         ActionSystem.AttachPerformer<synAddCardGA>(synAddCardPerformer);
         ActionSystem.AttachPerformer<synRemoveCardGA>(synRemoveCardPerformer);
-
+        ActionSystem.AttachPerformer<synSureGA>(synSurePerformer);
     }
     private void OnDisable()
     {
         ActionSystem.DetachPerformer<synAddCardGA>();
         ActionSystem.DetachPerformer<synRemoveCardGA>();
+        ActionSystem.DetachPerformer<synSureGA>();
     }
     public void setup()
     {
@@ -58,9 +60,8 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
         });
         btnSure.onClick.AddListener(() =>
         {
-            //检测是否合成成功
-            //成功就删卡
-            //加新卡到背包，已经更新数据库
+            synSureGA synSureGA = new synSureGA();
+            ActionSystem.Instance.Perform(synSureGA);
         });
     }
 
@@ -84,24 +85,23 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
             return;
         }
     }
-    void updateBagView()
-    {
 
-    }
 
     private IEnumerator synAddCardPerformer(synAddCardGA synAddCardGA)
     {
 
         if (materialCards.Count >= 4)
         {
-            Debug.LogWarning("田字格已满，最多4张卡牌");
+            TipPanel tipPanel = UIManager.Instance.ShowPanel<TipPanel>();
+            tipPanel.ChangeInfo("田字格已满，最多4张卡牌");
             yield break;
         }
         //获取被选中的卡牌
         GetBagSelectedCards();
         if (bagSelectedLogics == null || bagSelectedLogics.Count == 0 || bagSelectedLogics.Count > 4)
         {
-            Debug.Log("选择卡空");
+            TipPanel tipPanel = UIManager.Instance.ShowPanel<TipPanel>();
+            tipPanel.ChangeInfo("选择的卡牌不能大于4张卡牌");
             yield break;
         }
 
@@ -119,27 +119,87 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
     {
         //获取被选中的卡牌
         GetSynSelectedCards();
-        if (synSelectedLogics == null || synSelectedLogics.Count == 0 || synSelectedLogics.Count > 4)
+        if (synSelectedLogics == null || synSelectedLogics.Count == 0 )
         {
+            yield break;
+        }
+
+        if( synSelectedLogics.Count > 4)
+        {
+            TipPanel tipPanel = UIManager.Instance.ShowPanel<TipPanel>();
+            tipPanel.ChangeInfo("选择的卡牌不能大于4张卡牌");
             yield break;
         }
 
         List<Card> cards = new List<Card>();
         foreach (var cardLogic in synSelectedLogics)
         {
-
             yield return DiscardCard(cardLogic);
             cards.Add(cardLogic.card);
-            if (materialCards.Contains(cardLogic.card))
-                materialCards.Remove(cardLogic.card);
         }
-
+        // 统一移除材料（遍历完再删，避免遍历集合修改）
+        foreach (var c in cards)
+        {
+            materialCards.Remove(c);
+        }
         if (cards.Count > 0)
             yield return bagSystem.Instance.AddBagCardViewPerformer(cards);
     }
 
     private IEnumerator synSurePerformer(synSureGA synSureGA)
     {
+        // 1. 获取当前选中卡牌
+        
+        if (materialCards.Count == 0)
+        {
+            TipPanel tipPanel= UIManager.Instance.ShowPanel<TipPanel>();
+            tipPanel.ChangeInfo("请先选择合成材料卡牌");
+            yield break;
+        }
+
+        // 2. 提取选中卡牌的 ID
+        List<int> materialCardIds = materialCards
+            .Select(Card => Card.CardId)
+            .ToList();
+
+        // 3. 匹配配方
+        var targetRecipe = SynthesisRecipeTable.Instance.GetMatchRecipe(materialCardIds);
+        if (targetRecipe == null)
+        {
+            TipPanel tipPanel = UIManager.Instance.ShowPanel<TipPanel>();
+            tipPanel.ChangeInfo("当前选择卡牌无对应合成配方");
+            yield break;
+        }
+
+
+        // ========== 关键修复：先拷贝一份集合，遍历副本 ==========
+        List<CardLogic> copeCardLogics = new List<CardLogic>(synCardsHolder.cardLogics);
+
+        // 5. 移除材料卡牌（遍历副本，原集合不会被遍历）
+        foreach (var cardLogic in copeCardLogics)
+        {
+            if (cardLogic == null) Debug.Log("kong");
+            PlayerDataManager.Instance.RemoveCardFromDeck(cardLogic.card);
+            yield return DiscardCard(cardLogic);
+        }
+        materialCards.Clear();
+
+        // 6. 根据【产出卡牌ID】创建新卡牌
+        Card newCard = CardManager.Instance.CreateCardById(targetRecipe.resultCardId);
+        if (newCard == null)
+        {
+            Debug.LogError($"根据ID {targetRecipe.resultCardId} 未找到对应卡牌");
+            yield break;
+        }
+
+        // 7. 新卡牌加入玩家卡组
+        PlayerDataManager.Instance.AddCardToDeck(newCard);
+
+
+        yield return bagSystem.Instance.RefreshBagView();
+
+
+        Debug.Log($"合成成功！产出卡牌ID：{targetRecipe.resultCardId}");
         yield break;
     }
 
@@ -152,30 +212,6 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
     {
         return false;
     }
-
-    //    // 1. 获取当前选中的所有卡牌ID
-    //    List<int> selectIds = new List<int>();
-    //foreach (var cardLogic in DeckCardsHolder.Instance.selectedCards)
-    //{
-    //    selectIds.Add(cardLogic.cardData.cardId);
-    //}
-
-    //// 2. 去配方表匹配
-    //SynthesisRecipe recipe = SynthesisRecipeTable.Instance.MatchRecipe(selectIds);
-
-    //// 3. 判断是否匹配到配方
-    //if (recipe == null)
-    //{
-    //    Debug.Log("所选卡牌没有对应合成配方！");
-    //    return;
-    //}
-
-    //// 走到这里 = 配方匹配成功
-    //int targetCardId = recipe.resultCardId;
-    //Debug.Log($"匹配到配方，成品ID：{targetCardId}");
-    //Update is called once per frame
-
-
 
 
 

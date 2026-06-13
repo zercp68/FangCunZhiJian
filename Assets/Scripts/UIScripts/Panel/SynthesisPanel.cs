@@ -1,11 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SynthesisPanel : BasePanel
 {
-    //当前卡片链表
-    public List<Card> currentCards;
+    public Button btnBack;
     public override void Init()
     {
 
@@ -13,7 +13,11 @@ public class SynthesisPanel : BasePanel
         bagSystem.Instance.setUP();
         //绑定按钮事件
         SynthesisSystem.Instance.setup();
-        //初始化第一页
+        btnBack.onClick.AddListener(() =>
+        {
+            UIManager.Instance.HidePanel<SynthesisPanel>();
+            UIManager.Instance.ShowPanel<CampsitePanel>();
+        });
     }
 
 

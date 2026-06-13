@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewWeaponCardData", menuName = "Data/Card/Action")]
+[CreateAssetMenu(fileName = "NewActionCardData", menuName = "Data/Card/Action")]
 public class ActionCardData : CardData
 {
     /// <summary>

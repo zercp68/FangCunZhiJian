@@ -31,7 +31,7 @@ public class StorePanel : BasePanel
     {
         if (txtCurrentMoney != null)
         {
-            txtCurrentMoney.text = $"当前金币为：{money}";
+            txtCurrentMoney.text = $"{money}";
         }
     }
 
@@ -55,7 +55,11 @@ public class StorePanel : BasePanel
             ActionSystem.Instance.Perform(rethrowGA);
         });
         //返回界面
-        btnBack.onClick.AddListener(() => { });
+        btnBack.onClick.AddListener(() => 
+        {
+            UIManager.Instance.HidePanel<StorePanel>();
+            UIManager.Instance.ShowPanel<CampsitePanel>();
+        });
         //购买卡牌按钮
         btnBuyCard.onClick.AddListener(() =>
         {

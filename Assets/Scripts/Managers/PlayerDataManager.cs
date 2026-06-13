@@ -17,10 +17,12 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     [Header("初始配置")]
     [SerializeField] private int initialMoney = 100;
     [SerializeField] private List<CardData> initialCardDatas;   // 初始卡组（ScriptableObject列表）
+    [SerializeField] private List<WeaponCardData> initialWeaponDatas;   // 初始卡组（ScriptableObject列表）
 
     // 运行时数据
     private int currentMoney;
     private List<Card> currentDeck = new List<Card>();   // 当前卡组（可变）
+    private List<WeaponCard> currentWeaponDeck = new List<WeaponCard>();
 
     // 公共只读属性
     public int Money => currentMoney;
@@ -32,7 +34,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     private void Start()
     {
         InitNewGame();
-        UIManager.Instance.ShowPanel<SynthesisPanel>();
+        UIManager.Instance.ShowPanel<CampsitePanel>();
     }
 
     /// <summary>
@@ -42,6 +44,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     {
         currentMoney = initialMoney;
         CardManager.Instance.fillCardList(initialCardDatas, currentDeck);
+        CardManager.Instance.fillCardList(initialWeaponDatas, currentWeaponDeck);
         // 重置武器
         currentLeftWeapon = null;
         currentRightWeapon = null;
@@ -51,6 +54,10 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         if (initialCardDatas == null || initialCardDatas.Count == 0)
         {
             Debug.LogError("PlayerDataManager: initialCardDatas（初始卡组）未在Inspector配置！");
+        }
+        if (initialWeaponDatas == null || initialWeaponDatas.Count == 0)
+        {
+            Debug.LogWarning("PlayerDataManager: initialWeaponDatas（初始武器卡组）未配置！");
         }
     }
 
@@ -122,6 +129,8 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         return removed;
     }
 
+
+    #region 装备武器方法
     // 装备武器的方法
     public void EquipLeftWeapon(WeaponCard weapon)
     {
@@ -137,14 +146,73 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     // 卸下武器的方法
     public void UnequipLeftWeapon()
     {
-        AddMoney(currentLeftWeapon.CardSellMoney);
         currentLeftWeapon = null;
-
     }
 
     public void UnequipRightWeapon() 
     {
-        AddMoney(currentRightWeapon.CardSellMoney);
         currentRightWeapon = null; 
     }
+    #endregion
+
+    #region 武器卡组 相关方法
+    /// <summary> 获取武器卡组副本（防止外部篡改原集合） </summary>
+    public List<WeaponCard> GetCurrentWeaponDeckCopy()
+    {
+        return new List<WeaponCard>(currentWeaponDeck);
+    }
+
+    /// <summary> 单张添加武器卡牌 </summary>
+    public void AddCardToWeaponDeck(WeaponCard weaponCard)
+    {
+        if (weaponCard == null)
+        {
+            Debug.LogWarning("添加的武器卡牌为空");
+            return;
+        }
+        currentWeaponDeck.Add(weaponCard);
+        Debug.Log($"添加武器卡牌: {weaponCard.CardId}，当前武器卡组数量: {currentWeaponDeck.Count}");
+    }
+
+    /// <summary> 批量添加武器卡牌 </summary>
+    public void AddCardsToWeaponDeck(List<WeaponCard> weaponCards)
+    {
+        if (weaponCards == null || weaponCards.Count == 0)
+        {
+            Debug.LogWarning("批量添加的武器卡牌列表为空");
+            return;
+        }
+        currentWeaponDeck.AddRange(weaponCards);
+        Debug.Log($"批量添加武器卡牌完成，当前武器卡组数量: {currentWeaponDeck.Count}");
+    }
+
+    /// <summary> 移除单张武器卡牌 </summary>
+    public bool RemoveCardFromWeaponDeck(WeaponCard weaponCard)
+    {
+        if (weaponCard == null)
+        {
+            Debug.LogWarning("要移除的武器卡牌为空");
+            return false;
+        }
+        bool removed = currentWeaponDeck.Remove(weaponCard);
+        if (removed)
+            Debug.Log($"移除武器卡牌: {weaponCard.CardId}");
+        else
+            Debug.LogWarning($"武器卡组中未找到卡牌: {weaponCard.CardId}");
+        return removed;
+    }
+
+    /// <summary> 清空武器卡组 </summary>
+    public void ClearWeaponDeck()
+    {
+        currentWeaponDeck.Clear();
+        Debug.Log("武器卡组已清空");
+    }
+
+    public void SellWeaponCard(WeaponCard weaponCard)
+    {
+        AddMoney(weaponCard.CardSellMoney);
+        return;
+    }
+    #endregion
 }

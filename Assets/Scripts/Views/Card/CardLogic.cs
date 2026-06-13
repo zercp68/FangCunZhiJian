@@ -73,12 +73,16 @@ public class CardLogic : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDra
 
     public void Setup(Card card)
     {
-        //this.card = card;
-        //title.text = card.Title;
-        
-        //mana= card.ManaCost.ToString();
-        price= card.CardMoney.ToString();
+        if (card == null)
+        {
+            Debug.LogError("CardLogic.Setup ´«Èë¿¨ÅÆÎª null£¡", this);
+            return;
+        }
         this.card = card;
+        //title.text = card.Title;
+
+        //mana= card.ManaCost.ToString();
+        price = card.CardMoney.ToString();
         Image = card.Image;
         description = card.Description;
         return;

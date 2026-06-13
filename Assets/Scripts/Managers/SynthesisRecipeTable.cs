@@ -8,11 +8,10 @@ using UnityEngine;
 [Serializable]
 public class SynthesisRecipe
 {
-    [Header("合成产出卡牌 ID")]
-    public int resultCardId;
-
     [Header("合成所需材料卡牌 ID 列表")]
     public List<int> materialCardIds = new List<int>();
+    [Header("合成产出卡牌 ID")]
+    public int resultCardId;
 }
 public class SynthesisRecipeTable : Singleton<SynthesisRecipeTable>
 {
