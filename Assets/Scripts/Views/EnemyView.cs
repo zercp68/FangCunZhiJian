@@ -2,10 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class EnemyView : CombatantView
 {
-    [SerializeField] private TMP_Text attackText;
+    [SerializeField] private Text attackText;
     /// <summary>
     /// 敌人攻击力
     /// </summary>
@@ -21,6 +22,10 @@ public class EnemyView : CombatantView
         SetupBase(enemyData.Health, enemyData.sprite);
     }
 
+    public override void Damage(int damageAmount)
+    {
+        base.Damage(damageAmount);
+    }
 
     /// <summary>
     /// 更新敌人的攻击力

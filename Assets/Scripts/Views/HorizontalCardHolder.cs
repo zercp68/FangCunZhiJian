@@ -234,6 +234,7 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
             Vector2 areaRight = RectTransformUtility.WorldToScreenPoint(uiCam, corners[2]);
             float midX = (areaLeft.x + areaRight.x) / 2;
             string hand = endScreenPos.x <= midX ? "Left" : "Right";
+            cardLogic.card.E_WeaponHand = endScreenPos.x <= midX ? E_WeaponHand.Left : E_WeaponHand.Right;
             Debug.Log($"[区域判定] 出牌区屏幕范围: X({areaLeft.x:F2} ~ {areaRight.x:F2}), 中点: {midX:F2}, 卡牌X: {endScreenPos.x:F2}, 判定为: {hand}");
         }
 
@@ -242,11 +243,12 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
         {
             if (card is ActionCard actionCard)
             {
-                if (!ManaSystem.Instance.HasEnoughMana(actionCard.ManaCost)
+                if (!StaminaSystem.Instance.HasEnoughStamina(actionCard.ManaCost)
                     && !WeaponSystem.Instance.IsMatchWeapon(actionCard))
                 { 
-                    Debug.Log("法力不足"); 
-                    Debug.Log("武器不匹配"); 
+                    Debug.Log("体力不足"); 
+                    Debug.Log("武器不匹配");
+                    cardLogic.card.E_WeaponHand = E_WeaponHand.None;
                 }
                 else
                 {
@@ -257,7 +259,11 @@ public  class HorizontalCardHolder : Singleton<HorizontalCardHolder>
             else if (card is ElementCard elementCard)
             {
                 if (!ManaSystem.Instance.HasEnoughMana(elementCard.ManaCost))
+                {
                     Debug.Log("法力不足");
+                    cardLogic.card.E_WeaponHand = E_WeaponHand.None;
+
+                }
                 else
                 {
                     PlayCardGA playCardGA = new PlayCardGA(elementCard);

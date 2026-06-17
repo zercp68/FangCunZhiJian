@@ -9,45 +9,42 @@ using UnityEngine.UI;
 /// </summary>
 public class CombatantView : MonoBehaviour
 {
-    [SerializeField]private TMP_Text healthText;
-    [SerializeField] private Image Image;
-    public int MaxHealth {  get; private set; }
-    public int CurrentHealth {  get; private set; }
+    [SerializeField] private BloodUI bloodUI;
+    [SerializeField] private Image imgView;
+    public int MAX_HP {  get; private set; }
+    public int currentHp {  get; private set; }
     private void Awake()
     {
-        if(Image == null)
+        if(imgView == null)
         {
-            Image = GetComponent<Image>();
+            imgView = GetComponent<Image>();
         }
     }
 
     protected void SetupBase(int health,Sprite sprite)
     {
-        MaxHealth=CurrentHealth=health;
+        MAX_HP=currentHp=health;
         if (sprite != null) 
         {
-            Image.sprite = sprite;
+            imgView.sprite = sprite;
         }
-        UpdateHealthText();
+        UpdateHealth(currentHp,MAX_HP);
     }
 
-    private void UpdateHealthText()
+    private void UpdateHealth(int currentHP,int MAX_HP)
     {
-        healthText.text = "HP:" + CurrentHealth;
+        bloodUI.UpdateBlood(currentHp,MAX_HP);
     }
 
-    public void Damage(int damageAmount)
+    public virtual void Damage(int damageAmount)
     {
-        CurrentHealth -= damageAmount;
-        if (CurrentHealth < 0)
+        currentHp -= damageAmount;
+        if (currentHp < 0)
         {
-            CurrentHealth = 0;
+            currentHp = 0;
         }
 
-        //受伤挨打放动画放抖动动画
-        
-
-        UpdateHealthText();
+        UpdateHealth(currentHp, MAX_HP);
     }
 
 }

@@ -1,21 +1,16 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-// 全属性加成（水）
+/// <summary>
+/// 水全属性加成
+/// </summary>
 public class AllStatBonusEffect : Effect
 {
-    /// <summary>
-    /// 全属性加成（水）
-    /// </summary>
-    public float AllStatBonus;
-    public override GameAction GetGameAction()
-    {
-        throw new System.NotImplementedException();
-    }
+    public float allStatBonus;
 
     public override void Setup(CombatStats combatStats)
     {
-        combatStats.allStatBonus += AllStatBonus;
+        combatStats.allStatBonus += allStatBonus;
     }
+
+    public override GameAction GetGameAction() => null;
 }

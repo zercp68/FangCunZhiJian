@@ -1,26 +1,14 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-// 辅助 Effect 类型（需要放在你的 Effect.cs 同文件或单独文件）
+/// <summary>
+/// 动作卡数值加成
+/// </summary>
 public enum ActionStatType
 {
-    /// <summary>
-    /// 暴击率
-    /// </summary>
-    CritRateBonus,
-    /// <summary>
-    /// 暴击伤害
-    /// </summary>
-    CritDamageBonus,
-    /// <summary>
-    /// 伤害倍率
-    /// </summary>
-    DamageMultiplier,
-    /// <summary>
-    /// 防御加成
-    /// </summary>
-    DefenseBonus
+    CritRateBonus,      // 暴击率加成
+    CritDamageBonus,    // 暴击伤害加成
+    DamageMultiplier,   // 伤害倍率
+    DefenseBonus        // 防御加成
 }
 
 [System.Serializable]
@@ -29,14 +17,10 @@ public class ActionStatEffect : Effect
     public ActionStatType statType;
     public float value;
 
-    public override GameAction GetGameAction()
-    {
-        // 数值加成型 Effect 不直接产生 GameAction，返回 null
-        return null;
-    }
-
     public override void Setup(CombatStats combatStats)
     {
-        
+        // 动作卡不向 CombatStats 添加数值，留空
     }
+
+    public override GameAction GetGameAction() => null;
 }

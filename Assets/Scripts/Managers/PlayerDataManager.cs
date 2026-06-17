@@ -34,7 +34,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     private void Start()
     {
         InitNewGame();
-        UIManager.Instance.ShowPanel<CampsitePanel>();
+        UIManager.Instance.ShowPanel<MathPanel>();
     }
 
     /// <summary>
@@ -152,6 +152,16 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     public void UnequipRightWeapon() 
     {
         currentRightWeapon = null; 
+    }
+    /// <summary>
+    /// 获取玩家当前已装备的左右手武器
+    /// </summary>
+    /// <param name="left">输出：左手武器</param>
+    /// <param name="right">输出：右手武器</param>
+    public void GetEquippedWeapons(out WeaponCard left, out WeaponCard right)
+    {
+        left = currentLeftWeapon;
+        right = currentRightWeapon;
     }
     #endregion
 

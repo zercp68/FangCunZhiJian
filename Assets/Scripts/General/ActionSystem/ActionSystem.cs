@@ -4,13 +4,39 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
+/// 动作调度策略
+/// </summary>
+public enum ActionScheduleMode
+{
+    Queued,     // 排队执行（默认）
+    Interrupt,  // 中断当前，清空队列，立即执行新动作
+    Reject      // 系统正忙则丢弃
+}
+
+/// <summary>
 /// 动作系统管理器（单例），负责注册执行器/反应、以及执行动作流程。
 /// </summary>
 public class ActionSystem : Singleton<ActionSystem>
 {
+    // 动作队列元素
+    private class QueuedAction
+    {
+        public GameAction Action;
+        public Action OnFinished;
+    }
+
+    private GameAction currentAction = null;   // 当前正在执行的动作
+
+    private bool isProcessing = false;
+    private Coroutine currentCoroutine = null;
+    private Queue<QueuedAction> actionQueue = new Queue<QueuedAction>();
+
     // ---------- 私有字段 ----------
     private bool isPerforming = false;                     // 是否正在执行动作   
-    public bool IsBusy => isPerforming;                  // 新增公开只读属性
+    // 公开属性，便于外部判断
+    public bool IsBusy => isProcessing;
+    public int PendingCount => actionQueue.Count;
+
     private List<GameAction> currentReactionList = null;   // 当前正在收集反应的列表（由Flow临时赋值）
 
     // 订阅者字典：Key=动作类型，Value=该类型注册的回调列表（回调接收 GameAction）
@@ -35,18 +61,86 @@ public class ActionSystem : Singleton<ActionSystem>
     /// <param name="onFinished">执行完成后的回调（可选）</param>
     public void Perform(GameAction action, Action onFinished = null)
     {
-        if (isPerforming)
+        Schedule(action, onFinished, ActionScheduleMode.Queued);
+    }
+    /// <summary>
+    /// 使用指定调度策略执行动作
+    /// </summary>
+    public void Schedule(GameAction action, Action onFinished, ActionScheduleMode mode)
+    {
+        switch (mode)
         {
-            Debug.LogWarning("动作系统正忙，忽略本次 Perform 调用");
+            case ActionScheduleMode.Queued:
+                EnqueueAction(action, onFinished);
+                break;
+            case ActionScheduleMode.Interrupt:
+                InterruptAndExecute(action, onFinished);
+                break;
+            case ActionScheduleMode.Reject:
+                if (!isProcessing)
+                    ExecuteNow(action, onFinished);
+                else
+                    Debug.Log($"[ActionSystem] 系统正忙，Reject 动作: {action.GetType().Name}");
+                break;
+        }
+    }
+    // ---------- 私有调度逻辑 ----------
+    private void EnqueueAction(GameAction action, Action onFinished)
+    {
+        actionQueue.Enqueue(new QueuedAction { Action = action, OnFinished = onFinished });
+        if (!isProcessing)
+            ProcessQueue();
+    }
+
+    private void InterruptAndExecute(GameAction action, Action onFinished)
+    {
+        if (currentCoroutine != null)
+            StopCoroutine(currentCoroutine);
+
+        actionQueue.Clear();
+
+        // 关键修复：通知被中断的动作立即清理
+        if (isProcessing && currentAction != null)
+        {
+            currentAction.OnCancel();
+        }
+
+        isProcessing = false;
+        ExecuteNow(action, onFinished);
+    }
+
+    private void ExecuteNow(GameAction action, Action onFinished)
+    {
+        if (isProcessing)
+        {
+            Debug.LogError("ExecuteNow 被调用时系统正忙，这不应该发生");
             return;
         }
-        isPerforming = true;
-        StartCoroutine(Flow(action, () =>
+        isProcessing = true;
+        currentAction = action;
+        currentCoroutine = StartCoroutine(Flow(action, () =>
         {
-            isPerforming = false;
+            isProcessing = false;
+            currentCoroutine = null;
+            currentAction = null;          // 清空
             onFinished?.Invoke();
+            // 继续处理队列中剩余的动作（如果有）
+            if (actionQueue.Count > 0)
+                ProcessQueue();
         }));
     }
+
+    private void ProcessQueue()
+    {
+        if (isProcessing) return;
+        if (actionQueue.Count == 0) return;
+        var next = actionQueue.Dequeue();
+        ExecuteNow(next.Action, next.OnFinished);
+    }
+
+
+
+
 
     /// <summary>
     /// 向当前正在处理的反应列表中添加一个新动作（仅供内部及反应回调使用）。

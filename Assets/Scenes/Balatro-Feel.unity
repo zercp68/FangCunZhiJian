@@ -168,31 +168,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   initialMoney: 100
   initialCardDatas:
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9822552ba77bf6041b6e35bb88a7fa9c, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
+  - {fileID: 11400000, guid: 7248705f374533d4db1b7248ef64f6a6, type: 2}
+  - {fileID: 11400000, guid: 7248705f374533d4db1b7248ef64f6a6, type: 2}
+  - {fileID: 11400000, guid: 7248705f374533d4db1b7248ef64f6a6, type: 2}
+  - {fileID: 11400000, guid: 303fd6d4a28604c458eaa8372a42558c, type: 2}
+  - {fileID: 11400000, guid: 303fd6d4a28604c458eaa8372a42558c, type: 2}
+  - {fileID: 11400000, guid: 303fd6d4a28604c458eaa8372a42558c, type: 2}
+  - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
+  - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
+  - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
+  - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
   initialWeaponDatas:
-  - {fileID: 11400000, guid: 8969ccf16fbdfcf4fac199d00331ba84, type: 2}
-  - {fileID: 11400000, guid: 9822552ba77bf6041b6e35bb88a7fa9c, type: 2}
-  - {fileID: 11400000, guid: ae2955a649595b64db7f0c8aca12456c, type: 2}
+  - {fileID: 11400000, guid: df4e0d03dbb40c24d90b89f41747b3de, type: 2}
+  - {fileID: 11400000, guid: bcbfd0866f168ee429f1558afb242156, type: 2}
+  - {fileID: 11400000, guid: 0174c466947b40040a8d3fc2bbdb075b, type: 2}
 --- !u!1 &109097479
 GameObject:
   m_ObjectHideFlags: 3

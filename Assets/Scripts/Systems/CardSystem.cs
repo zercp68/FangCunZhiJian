@@ -121,19 +121,22 @@ public class CardSystem : Singleton<CardSystem>
         //打出后效果
 
 
-        //打出后消耗法力值
-        SpendManaGA spendManaGA = new(playCardGA.Card.ManaCost);
-        ActionSystem.Instance.AddReaction(spendManaGA);
+
 
         //判断是属性牌还是攻击牌
         if (playCardGA.Card is ActionCard actionCard)
         {
+            SpendStaminaGA spendStaminaGA = new(playCardGA.Card.ManaCost);
+            ActionSystem.Instance.AddReaction(spendStaminaGA);
             EnemyView target = EnemyBoardView.Instance.EnemyViews[0];
             WeaponActionGA actionGA = new WeaponActionGA(actionCard, target);
             ActionSystem.Instance.AddReaction(actionGA);
         }
         else if (playCardGA.Card is ElementCard elementCard)
         {
+            //打出后消耗法力值
+            SpendManaGA spendManaGA = new(playCardGA.Card.ManaCost);
+            ActionSystem.Instance.AddReaction(spendManaGA);
             // 属性牌：创建赋能动作，进入弃牌堆，抽1张
             WeaponAddElementGA addElementGA = new WeaponAddElementGA(elementCard);
             ActionSystem.Instance.AddReaction(addElementGA);
@@ -144,7 +147,6 @@ public class CardSystem : Singleton<CardSystem>
 
         }
 
-        yield return DrawCardsPerformer(new DrawCardsGA(1));
     }
 
     public IEnumerator ReHandCardPerformer(ReHandCardGA reHandCardGA)

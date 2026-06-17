@@ -133,6 +133,7 @@ public class WeaponPanelSystem : Singleton<WeaponPanelSystem>
                 //当前武器不为空时
                 if (currentLeftWeapon != null)
                 {
+                    currentLeftWeapon.IsWeaponEquipped = false;
                     UnEquipWeaponGA unEquipWeaponGA = new UnEquipWeaponGA(E_WeaponHand.Left);
                     ActionSystem.Instance.AddReaction(unEquipWeaponGA);
                 }
@@ -140,6 +141,7 @@ public class WeaponPanelSystem : Singleton<WeaponPanelSystem>
                 if (currentLeftWeapon!=null)
                 {
                     yield return DiscardWeaBagCard(selectedWeaCard);
+                    currentLeftWeapon.IsWeaponEquipped = true;
                     PlayerDataManager.Instance.EquipLeftWeapon(currentLeftWeapon);
                     yield return UpdateWeaView(E_WeaponHand.Left);
                 }
@@ -148,6 +150,8 @@ public class WeaponPanelSystem : Singleton<WeaponPanelSystem>
                 // 缺失：先卸装原有右手武器
                 if (currentRightWeapon != null)
                 {
+                    currentRightWeapon.IsWeaponEquipped = false;
+
                     UnEquipWeaponGA unEquipWeaponGA = new UnEquipWeaponGA(E_WeaponHand.Right,currentRightWeapon);
                     ActionSystem.Instance.AddReaction(unEquipWeaponGA);
                 }
@@ -155,6 +159,7 @@ public class WeaponPanelSystem : Singleton<WeaponPanelSystem>
                 if (currentRightWeapon != null)
                 {
                     yield return DiscardWeaBagCard(selectedWeaCard);
+                    currentRightWeapon.IsWeaponEquipped = true;
                     PlayerDataManager.Instance.EquipRightWeapon(currentRightWeapon);
                     yield return UpdateWeaView(E_WeaponHand.Right);
                 }

@@ -1,22 +1,16 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-// 灼烧效果
+/// <summary>
+/// 灼烧层数（火）
+/// </summary>
 public class BurnStackEffect : Effect
 {
-    /// <summary>
-    /// 灼烧层数
-    /// </summary>
-    public int BurnStacks;         
-
-    public override GameAction GetGameAction()
-    {
-        return null;
-    }
+    public int burnStacks;
 
     public override void Setup(CombatStats combatStats)
     {
-        combatStats.burnStacks += BurnStacks;
+        combatStats.burnStacks += burnStacks;
     }
+
+    public override GameAction GetGameAction() => null;
 }

@@ -51,6 +51,8 @@ public class bagSystem : Singleton<bagSystem>
     private bool _isPageChanging = false;
     private const float LockDuration = 0.2f;
 
+    private Coroutine currentUpdateCoroutine;   // 记录当前更新协程
+    private bool isCancelling = false;
 
     private void OnEnable()
     {
@@ -111,39 +113,66 @@ public class bagSystem : Singleton<bagSystem>
 
     private IEnumerator UpdatePanelPerformer(UpdatePanelGA updatePanelGA)
     {
-        // 加载开始：禁用所有圆点
+        // 停止旧协程（防御）
+        if (currentUpdateCoroutine != null)
+            StopCoroutine(currentUpdateCoroutine);
+
+        currentUpdateCoroutine = StartCoroutine(InternalUpdate(updatePanelGA));
+        yield return currentUpdateCoroutine;
+        currentUpdateCoroutine = null;
+    }
+
+    private IEnumerator InternalUpdate(UpdatePanelGA updatePanelGA)
+    {
         SetAllInteractable(false);
+        yield return ClearAllCard();               // 注意：这里使用有动画的清空，会被中断快速清理替代
 
-        //清空当前界面
-        yield return ClearAllCard();
-        //生成卡牌
-
-        // 修复：增加索引范围校验，避免越界
         int safeBegin = Mathf.Max(0, updatePanelGA.beginIndex);
         int safeEnd = Mathf.Min(updatePanelGA.endIndex, currentCards.Count);
-        // 边界防护：如果起始索引大于列表长度，直接退出
         if (safeBegin >= currentCards.Count)
         {
             ResetPageLock();
             yield break;
         }
-
         for (int i = safeBegin; i < safeEnd; i++)
         {
-            // 二次防护：防止并发修改导致的越界
-            if (i < 0 || i >= currentCards.Count)
-            {
-                Debug.LogWarning($"索引{i}越界，currentCards长度：{currentCards.Count}");
-                continue;
-            }
+            if (i < 0 || i >= currentCards.Count) continue;
             Card card = currentCards[i];
-
             yield return BagCardsHolder.AddCard(card, drawPilePoint);
         }
-
-
         Invoke(nameof(ResetPageLock), LockDuration);
-        yield break;
+    }
+    // 在 bagSystem 中添加：
+    public void CancelCurrentUpdate()
+    {
+        if (isCancelling) return;
+        isCancelling = true;
+        if (currentUpdateCoroutine != null)
+            StopCoroutine(currentUpdateCoroutine);
+        StartCoroutine(ClearAllCardImmediate());
+        SetAllInteractable(true);
+        _isPageChanging = false;
+        isCancelling = false;
+    }
+
+    /// <summary>
+    /// 立即清空所有卡牌（无动画，用于中断）
+    /// </summary>
+    private IEnumerator ClearAllCardImmediate()
+    {
+        foreach (var cardLogic in BagCardsHolder.cardLogics)
+        {
+            if (cardLogic == null) continue;
+            if (cardLogic.cardVisual != null)
+                Destroy(cardLogic.cardVisual.gameObject);
+            if (cardLogic.slotGameObject != null)
+                Destroy(cardLogic.slotGameObject);
+            Destroy(cardLogic.gameObject);
+        }
+        BagCardsHolder.cardLogics.Clear();
+        BagCardsHolder.selectedCardLogic = null;
+        BagCardsHolder.hoveredCardLogic = null;
+        yield return null;
     }
 
     /// <summary> 
@@ -440,25 +469,44 @@ public class bagSystem : Singleton<bagSystem>
         btnAllCard.onClick.AddListener(() =>
         {
             e_NowBagCardType = E_bagCardType.allCard;
-            SwitchCardType(AllCards);
+            SwitchCardTypeWithInterrupt(AllCards);
         });
         btnActCard.onClick.AddListener(() => 
         {
             e_NowBagCardType = E_bagCardType.actCard;
-            SwitchCardType(ActCards);
+            SwitchCardTypeWithInterrupt(ActCards);
         });
         btnEleCard.onClick.AddListener(() => 
         {
             e_NowBagCardType = E_bagCardType.eleCard;
-            SwitchCardType(EleCards);
+            SwitchCardTypeWithInterrupt(EleCards);
         });
         btnWeaCard.onClick.AddListener(() => 
         {
             e_NowBagCardType = E_bagCardType.weaCard;
-            SwitchCardType(WeaCards);
+            SwitchCardTypeWithInterrupt(WeaCards);
         });
     }
+    private void SwitchCardTypeWithInterrupt(List<Card> targetCards)
+    {
+        updateCurrentCards(targetCards);
+        GenerateDots();
+        setupBtnPage();
 
+        if (maxPageCount <= 0)
+        {
+            currentPageIndex = 0;
+            UpdatePanelGA emptyPanel = new UpdatePanelGA(0, 0);
+            ActionSystem.Instance.Schedule(emptyPanel, null, ActionScheduleMode.Interrupt);
+            return;
+        }
+
+        SwitchPage(0);
+        int newEndIndex = Mathf.Min(itemsPerPage, currentCards.Count);
+        UpdatePanelGA firstPage = new UpdatePanelGA(0, newEndIndex);
+        // 关键：使用中断模式
+        ActionSystem.Instance.Schedule(firstPage, null, ActionScheduleMode.Interrupt);
+    }
     #region 卡牌工具
 
 

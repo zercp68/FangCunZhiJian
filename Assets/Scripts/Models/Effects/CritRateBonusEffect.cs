@@ -1,22 +1,16 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-//暴击率加成（金）
+/// <summary>
+/// 暴击率加成（金）
+/// </summary>
 public class CritRateBonusEffect : Effect
 {
-    /// <summary>
-    /// 暴击率加成（金）
-    /// </summary>
-    public float CritRateBonus;
-    public override GameAction GetGameAction()
-    {
-        return null;
-    }
+    public float critRateBonus;
 
     public override void Setup(CombatStats combatStats)
     {
-        combatStats.critRateBonus += CritRateBonus;
+        combatStats.critRateBonus += critRateBonus;
     }
 
+    public override GameAction GetGameAction() => null;
 }

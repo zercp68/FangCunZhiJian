@@ -1,22 +1,17 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-// 固定回血（比如四木额外回复失去生命的50%）
+/// <summary>
+/// 固定额外回血（四木/四水）
+/// </summary>
 public class ExtraHealEffect : Effect
 {
-    /// <summary>
-    //基于已损失生命值的回复比例。例如 0.5 表示回复已损失生命的 50%。
-    /// </summary>
-    public float ExtraHealFromLost; 
-
-    public override GameAction GetGameAction()
-    {
-        return null;
-    }
+    [Tooltip("额外回复失去生命的比例（如 0.5 表示 50%）")]
+    public int extraHealFromLost;
 
     public override void Setup(CombatStats combatStats)
     {
-        combatStats.extraHealFromLost += ExtraHealFromLost;
+        combatStats.extraHealFromLost += extraHealFromLost;
     }
+
+    public override GameAction GetGameAction() => null;
 }

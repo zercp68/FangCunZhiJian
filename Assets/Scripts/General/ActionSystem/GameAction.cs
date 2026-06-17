@@ -14,4 +14,9 @@ public abstract class GameAction
 
     /// <summary>动作执行后发生的反应动作列表</summary>
     public List<GameAction> PostReactions { get; private set; } = new();
+
+    /// <summary>
+    /// 当动作被中断时调用（仅在使用 Interrupt 策略时有意义）
+    /// </summary>
+    public virtual void OnCancel() { }
 }
