@@ -36,4 +36,5 @@ public class HeroView : CombatantView
         currentShield += amount;
         // 更新 UI 显示护盾值
     }
+
 }

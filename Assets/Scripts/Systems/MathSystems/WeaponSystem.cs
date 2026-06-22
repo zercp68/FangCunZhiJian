@@ -12,14 +12,13 @@ public class WeaponSystem : Singleton<WeaponSystem>
     [SerializeField] private WeaponView RightWeaponView;
 
 
-
-
     #region 计算系统的定义
     [SerializeField] private CombatSystem leftCombatSystem;
     [SerializeField] private CombatSystem rightCombatSystem;
     #endregion
 
-
+    // 新增：标记是否已就绪
+    public bool IsReady { get; private set; } = false;
 
     private void OnEnable()
     {
@@ -47,12 +46,63 @@ public class WeaponSystem : Singleton<WeaponSystem>
     /// <param name="weaponCard"></param>
     public void setup()
     {
-        if (currentLeftWeapon!=null)
-        {
-
-        }
+        IsReady = false; // 开始时设为未就绪
+        setupWeapon();
+        leftCombatSystem.UpdateUI();
+        rightCombatSystem.UpdateUI();
+        StartCoroutine(EquipWeaponsToViews());
     }
 
+    private void setupWeapon()
+    {
+        // 先清空本局旧武器，防止残留
+        currentLeftWeapon = null;
+        currentRightWeapon = null;
+
+        // 从全局玩家数据读取武器，赋值给当前对局变量
+        if (PlayerDataManager.Instance != null)
+        {
+            // 调用读取方法
+            PlayerDataManager.Instance.GetEquippedWeapons(out currentLeftWeapon, out currentRightWeapon);
+
+            string leftName = currentLeftWeapon == null ? "无" : currentLeftWeapon.CardId.ToString();
+            string rightName = currentRightWeapon == null ? "无" : currentRightWeapon.CardId.ToString();
+            Debug.Log($"MatchSetup：读取玩家武器 → 左手：{leftName}，右手：{rightName}");
+        }
+        else
+        {
+            Debug.LogError("PlayerDataManager 单例不存在，无法读取武器！");
+        }
+    }
+    public IEnumerator EquipWeaponsToViews()
+    {
+        // 装备左手武器
+        if (currentLeftWeapon != null)
+        {
+            EquipWeaponGA setWeaponGA = new(currentLeftWeapon, E_WeaponHand.Left);
+            ActionSystem.Instance.Perform(setWeaponGA);
+            while (ActionSystem.Instance.IsBusy) yield return null;
+        }
+        else
+        {
+            Debug.Log("左手无武器，跳过装备");
+        }
+
+        // 装备右手武器
+        if (currentRightWeapon != null)
+        {
+            EquipWeaponGA setWeaponGA = new(currentRightWeapon, E_WeaponHand.Right);
+            ActionSystem.Instance.Perform(setWeaponGA);
+            while (ActionSystem.Instance.IsBusy) yield return null;
+        }
+        else
+        {
+            Debug.Log("右手无武器，跳过装备");
+        }
+        //装备完成，标记为就绪
+        IsReady = true;
+        Debug.Log("武器已全部装备完毕");
+    }
     public bool IsWeaponEquipped(WeaponCard weaponCard)
     {
         if (weaponCard != null)
@@ -60,9 +110,9 @@ public class WeaponSystem : Singleton<WeaponSystem>
             switch (weaponCard.E_WeaponHand)
             {
                 case E_WeaponHand.Left:
-                    return currentLeftWeapon == null;
+                    return currentLeftWeapon != null;
                 case E_WeaponHand.Right:
-                    return currentRightWeapon == null;
+                    return currentRightWeapon != null;
             }
         }
         Debug.Log("武器牌判断传入为空");
@@ -143,7 +193,21 @@ public class WeaponSystem : Singleton<WeaponSystem>
         //这里放为卡牌赋能的动画
         yield return null;
     }
+    public IEnumerator WeaponAddConponentPerformer(WeaponAddConponentGA weaponAddConponentGA)
+    {
+        switch (weaponAddConponentGA.componentCard.E_WeaponHand)
+        {
+            case E_WeaponHand.Left:
+                leftCombatSystem.AddComponentCard(weaponAddConponentGA.componentCard);
+                break;
+            case E_WeaponHand.Right:
+                rightCombatSystem.AddComponentCard(weaponAddConponentGA.componentCard);
+                break;
+        }
 
+        //这里放为卡牌赋能的动画
+        yield return null;
+    }
     /// <summary>
     /// 启动动作牌。
     /// </summary>

@@ -24,11 +24,18 @@ public class CardManager : Singleton<CardManager>
         //{
         //    item.otherCards
         //}
+        fillCardList(allCardDatas, allCards);
     }
 
     [SerializeField] private List<CardData> allCardDatas;
+    private List<Card> allCards;
 
-
+    public void GetAllCards(List<Card> cards)
+    {
+        cards = new List<Card>();
+        cards.AddRange(allCards);
+    }
+    
     /// <summary>
     /// 泛型：根据CardData列表生成对应Card实例，填充到目标集合
     /// TData : 卡牌数据基类(可传CardData/WeaponCardData等子类)
@@ -47,7 +54,7 @@ public class CardManager : Singleton<CardManager>
         if (targetList == null)
         {
             Debug.LogError("targetList 目标集合为空！");
-            return;
+            targetList = new List<TCard>();
         }
 
         targetList.Clear();
@@ -68,6 +75,10 @@ public class CardManager : Singleton<CardManager>
             else if (data is WeaponCardData weaponData)
             {
                 card = new WeaponCard(weaponData);
+            }
+            else if (data is ComponentCardData componentCardData)
+            {
+                card = new ComponentCard(componentCardData);
             }
             else
             {
@@ -133,12 +144,12 @@ public class CardManager : Singleton<CardManager>
     public void SplitCardsByType(List<Card> cards, 
         List<Card> targetActionCards,   
         List<Card> targetElementCards,
-        List<Card> targetWeaponCards)
+        List<Card> targetCombatCards)
     {
         // 先清空所有目标列表
         targetActionCards?.Clear();
         targetElementCards?.Clear();
-        targetWeaponCards?.Clear();
+        targetCombatCards?.Clear();
 
         if (cards == null)
         {
@@ -158,9 +169,9 @@ public class CardManager : Singleton<CardManager>
             {
                 targetElementCards?.Add(elementCard);
             }
-            else if (card is WeaponCard weaponCard)
+            else if (card is ComponentCard componentCard)
             {
-                targetWeaponCards?.Add(weaponCard);
+                targetCombatCards?.Add(componentCard);
             }
             else
             {
@@ -169,7 +180,32 @@ public class CardManager : Singleton<CardManager>
             }
         }
     }
+    public void SplitCardsByRarity(List<Card> Ncards,List<Card> Rcards,List<Card> SRcards,List<Card> SRRcards)
+    {
+        Ncards = new List<Card>();
+        Rcards = new List<Card>();
+        SRcards = new List<Card>();
+        SRRcards = new List<Card>();
+        foreach(var card in allCards)
+        {
 
+            switch (card.E_Rarity)
+            {
+                case E_Rarity.N:
+                    Ncards.Add(card);
+                    break;
+                case E_Rarity.R:
+                    Rcards.Add(card);
+                    break;
+                case E_Rarity.SR:
+                    SRcards.Add(card);
+                    break;
+                case E_Rarity.SSR:
+                    SRRcards.Add(card);
+                    break;
+            }
+        }
+    }
     public void fillCardListByCardLogic(List<CardLogic> cardLogics,List<Card> targetList)
     {
         targetList.Clear();

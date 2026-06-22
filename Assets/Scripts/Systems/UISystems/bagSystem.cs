@@ -26,7 +26,7 @@ public class bagSystem : Singleton<bagSystem>
     public Button btnAllCard;
     public Button btnActCard;
     public Button btnEleCard;
-    public Button btnWeaCard;
+    public Button btnComCard;
 
     [Header("设置")]
     public BagCardsHolder BagCardsHolder;
@@ -34,7 +34,7 @@ public class bagSystem : Singleton<bagSystem>
     private List<Card> AllCards;
     private List<Card> ActCards;
     private List<Card> EleCards;
-    private List<Card> WeaCards;
+    private List<Card> ComCards;
 
 
     [Header("配置")]
@@ -96,13 +96,13 @@ public class bagSystem : Singleton<bagSystem>
         AllCards = new List<Card>();
         ActCards = new List<Card>();
         EleCards = new List<Card>();
-        WeaCards = new List<Card>();
+         ComCards= new List<Card>();
         // 3. 安全获取当前卡组副本并赋值（增加空引用检查）
         if (PlayerDataManager.Instance != null)
         {
             List<Card> deckCopy = PlayerDataManager.Instance.GetCurrentDeckCopy();
             AllCards.AddRange(deckCopy); // 赋值核心逻辑（也可直接 deckCards = deckCopy;）
-            CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, WeaCards);
+            CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards);
             Debug.Log($"MatchSetup: 从PlayerDataManager获取到卡组数量: {deckCopy.Count}"); // 新增日志
         }
         else
@@ -218,7 +218,7 @@ public class bagSystem : Singleton<bagSystem>
         }
 
         // 重新按类型拆分卡组
-        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, WeaCards);
+        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards);
 
         // 弃牌后同样刷新当前页，自动补下一页卡牌进来填满空位
 
@@ -241,7 +241,7 @@ public class bagSystem : Singleton<bagSystem>
         // 1. 把卡牌加入总卡组
         AllCards.AddRange(cards);
         // 2. 重新按类型拆分卡牌
-        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, WeaCards);
+        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards);
 
 
         // 3. 刷新当前分类页面（关键！重新加载当前页，补全空位）
@@ -302,7 +302,7 @@ public class bagSystem : Singleton<bagSystem>
                 SwitchCardType(EleCards);
                 break;
             case E_bagCardType.weaCard:
-                SwitchCardType(WeaCards);
+                SwitchCardType(ComCards);
                 break;
         }
     }
@@ -464,7 +464,7 @@ public class bagSystem : Singleton<bagSystem>
         btnAllCard.onClick.RemoveAllListeners();
         btnActCard.onClick.RemoveAllListeners();
         btnEleCard.onClick.RemoveAllListeners();
-        btnWeaCard.onClick.RemoveAllListeners();
+        btnComCard.onClick.RemoveAllListeners();
 
         btnAllCard.onClick.AddListener(() =>
         {
@@ -481,10 +481,10 @@ public class bagSystem : Singleton<bagSystem>
             e_NowBagCardType = E_bagCardType.eleCard;
             SwitchCardTypeWithInterrupt(EleCards);
         });
-        btnWeaCard.onClick.AddListener(() => 
+        btnComCard.onClick.AddListener(() => 
         {
             e_NowBagCardType = E_bagCardType.weaCard;
-            SwitchCardTypeWithInterrupt(WeaCards);
+            SwitchCardTypeWithInterrupt(ComCards);
         });
     }
     private void SwitchCardTypeWithInterrupt(List<Card> targetCards)

@@ -141,12 +141,15 @@ public class CardSystem : Singleton<CardSystem>
             WeaponAddElementGA addElementGA = new WeaponAddElementGA(elementCard);
             ActionSystem.Instance.AddReaction(addElementGA);
         }
-        else 
+        else if (playCardGA.Card is ComponentCard componentCard)
         {
-            Debug.Log("PlayCard不对,普通Card基类");
-
+            //打出后消耗法力值
+            SpendManaGA spendManaGA = new(playCardGA.Card.ManaCost);
+            ActionSystem.Instance.AddReaction(spendManaGA);
+            // 属性牌：创建赋能动作，进入弃牌堆，抽1张
+            WeaponAddConponentGA addConponentGA = new WeaponAddConponentGA(componentCard);
+            ActionSystem.Instance.AddReaction(addConponentGA);
         }
-
     }
 
     public IEnumerator ReHandCardPerformer(ReHandCardGA reHandCardGA)

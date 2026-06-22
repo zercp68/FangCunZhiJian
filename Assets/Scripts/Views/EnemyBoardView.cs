@@ -10,6 +10,7 @@ public class EnemyBoardView : Singleton<EnemyBoardView>
 {
     //视图棋盘列表，当前所有敌人
     [SerializeField] private List<Transform> slots;
+    [SerializeField] private GameObject RemoveEnemyVFX;
     public List<EnemyView> EnemyViews {  get; private set; }= new List<EnemyView>();
     
     //创造敌人
@@ -30,5 +31,7 @@ public class EnemyBoardView : Singleton<EnemyBoardView>
         Tween tween = enemyView.transform.DOScale(Vector3.zero, 0.25f);
         yield return tween.WaitForCompletion();
         Destroy(enemyView.gameObject);
+        //生成敌人死亡特效
+        //然后销毁
     }
 }

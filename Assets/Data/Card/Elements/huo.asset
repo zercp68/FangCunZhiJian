@@ -15,13 +15,13 @@ MonoBehaviour:
   <cardId>k__BackingField: 10013
   <CardType>k__BackingField: 1
   <Description>k__BackingField: 
-  <manaCost>k__BackingField: 0
+  <manaCost>k__BackingField: 1
   <Image>k__BackingField: {fileID: 21300000, guid: b4685c9c31d7bc840b2abf68a457011e, type: 3}
-  <CardMoney>k__BackingField: 0
+  <CardMoney>k__BackingField: 2
+  <E_Rarity>k__BackingField: 0
   E_WeaponHand: 0
   <Effects>k__BackingField:
   - rid: 6257528870821691396
-  <E_ElementCardLevel>k__BackingField: 0
   <E_ElementType>k__BackingField: 3
   references:
     version: 2

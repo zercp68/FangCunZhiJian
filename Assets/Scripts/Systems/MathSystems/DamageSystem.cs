@@ -48,10 +48,12 @@ public class DamageSystem : Singleton<DamageSystem>
                 {
                     KillEnemyGA killEnemyGA = new(deadEnemyView);
                     ActionSystem.Instance.AddReaction(killEnemyGA);
+                    LevelManager.Instance.NextLevel();
                 }
-                else
+                else if(target is HeroView)
                 {
-                    // ÓÎÏ·Ê§°ÜÂß¼­
+                    UIManager.Instance.HidePanel<MathPanel>();
+                    UIManager.Instance.ShowPanel<FailurePanel>();
                 }
             }
         }

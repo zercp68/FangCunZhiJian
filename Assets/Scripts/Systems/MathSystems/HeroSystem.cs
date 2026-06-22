@@ -4,8 +4,20 @@ using UnityEngine;
 
 public class HeroSystem : Singleton<HeroSystem>
 {
+    [SerializeField] private GameObject HealHeroVFX;
+    // 特效存活时长，统一控制
+    [SerializeField] private float vfxDuration = 1f;
     [field:SerializeField]public HeroView HeroView { get;private set; }
-    
+    private void OnEnable()
+    {
+        ActionSystem.AttachPerformer<AttackEnemyGA>(AttackEnemyPerformer);
+        ActionSystem.AttachPerformer<HealHeroGA>(HealHeroPerformer);
+    }
+    private void OnDisable()
+    {
+        ActionSystem.DetachPerformer<AttackEnemyGA>();
+        ActionSystem.DetachPerformer<HealHeroGA>();
+    }
 
     public void Setup(HeroData heroData)
     {
@@ -17,10 +29,11 @@ public class HeroSystem : Singleton<HeroSystem>
     }
     public IEnumerator HealHeroPerformer(HealHeroGA healHeroGA)
     {
+        GameObject vfx = Instantiate(HealHeroVFX, transform.position, Quaternion.identity);
+        Destroy(vfx, vfxDuration); 
+
+        HeroView.Heal(healHeroGA.Amount);
         yield break;
     }
-    public IEnumerator ApplyBurnPerformer(ApplyBurnGA applyBurnGA)
-    {
-        yield break;
-    }
+
 }

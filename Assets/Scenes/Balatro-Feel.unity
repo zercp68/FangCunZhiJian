@@ -178,10 +178,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
   - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
   - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
-  initialWeaponDatas:
-  - {fileID: 11400000, guid: df4e0d03dbb40c24d90b89f41747b3de, type: 2}
-  - {fileID: 11400000, guid: bcbfd0866f168ee429f1558afb242156, type: 2}
-  - {fileID: 11400000, guid: 0174c466947b40040a8d3fc2bbdb075b, type: 2}
+  initialWeaponDatas: []
 --- !u!1 &109097479
 GameObject:
   m_ObjectHideFlags: 3
@@ -1291,8 +1288,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   allCardDatas:
-  - {fileID: 11400000, guid: 9d835b67c84b89242815f95d7059efa3, type: 2}
-  - {fileID: 11400000, guid: af05eee733ad4ba43aa2bc30e3fb0ab6, type: 2}
+  - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
+  - {fileID: 11400000, guid: e4856760f344c704ba868da85a5b4511, type: 2}
 --- !u!1 &1550481320
 GameObject:
   m_ObjectHideFlags: 0
@@ -1571,6 +1568,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c13574fe56c0b444a02b9de93fc875d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  levels: []
 --- !u!1 &2004274446
 GameObject:
   m_ObjectHideFlags: 0

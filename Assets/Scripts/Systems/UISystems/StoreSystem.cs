@@ -13,16 +13,18 @@ public class StoreSystem : Singleton<StoreSystem>
     [SerializeField] private Transform drawPilePoint;
     [SerializeField] private Transform discardPilePoint;
 
-    [SerializeField] private List<Card> ordinaryCards = new List<Card>();
-    [SerializeField] private List<Card> generalCards = new List<Card>();
-    [SerializeField] private List<Card> rareCards = new List<Card>();
+    [SerializeField] private List<Card> Ncards = new List<Card>();
+    [SerializeField] private List<Card> Rcards = new List<Card>();
+    [SerializeField] private List<Card> SRcards = new List<Card>();
+    [SerializeField] private List<Card> SRRcards = new List<Card>();
 
     // ---------- 新增：商店配置 ----------
     [Header("商店配置")]
     [SerializeField] private int storeSize = 6;               // 商店每次刷新的卡牌数量
-    [SerializeField][Range(0, 1)] private float ordinaryProb = 0.5f;  // 普通卡概率
-    [SerializeField][Range(0, 1)] private float generalProb = 0.3f;   // 一般卡概率
-    [SerializeField][Range(0, 1)] private float rareProb = 0.2f;       // 稀有卡概率
+    [SerializeField][Range(0, 1)] private float NProb = 0.6f;  // 普通卡概率
+    [SerializeField][Range(0, 1)] private float RProb = 0.25f;   // 一般卡概率
+    [SerializeField][Range(0, 1)] private float SRProb = 0.10f;       // 稀有卡概率
+    [SerializeField][Range(0, 1)] private float SRRProb = 0.05f;       // 传说卡概率
 
     private void OnEnable()
     {
@@ -39,11 +41,9 @@ public class StoreSystem : Singleton<StoreSystem>
 
 
 
-    public void setUp(List<CardData> ordinaryCardDatas, List<CardData> generalCardDatas, List<CardData> rareCardDatas)
+    public void setUp()
     {
-        CardManager.Instance.fillCardList(ordinaryCardDatas, ordinaryCards);
-        CardManager.Instance.fillCardList(generalCardDatas, generalCards);
-        CardManager.Instance.fillCardList(rareCardDatas, rareCards);
+        CardManager.Instance.SplitCardsByRarity(Ncards,Rcards,SRcards,SRRcards);
     }
 
 
@@ -55,44 +55,101 @@ public class StoreSystem : Singleton<StoreSystem>
     {
         StoreCards.Clear();
 
-        // 校验概率总和（建议在 Inspector 中保证总和为1，这里做防御）
-        float total = ordinaryProb + generalProb + rareProb;
-        if (Mathf.Approximately(total, 0f))
+        // 1. 校验各卡池是否有卡牌，空池直接警告
+        bool hasN = Ncards.Count > 0;
+        bool hasR = Rcards.Count > 0;
+        bool hasSR = SRcards.Count > 0;
+        bool hasSRR = SRRcards.Count > 0;
+        if (!hasN && !hasR && !hasSR && !hasSRR)
         {
-            Debug.LogError("商店概率总和为0，无法抽卡");
+            Debug.LogError("所有商店卡池全部为空，无法刷新商店！");
             return;
         }
 
+        // 2. 概率总和校验
+        float totalProb = NProb + RProb + SRProb + SRRProb;
+        if (Mathf.Approximately(totalProb, 0f))
+        {
+            Debug.LogError("商店四种卡牌概率总和为0，无法抽卡");
+            return;
+        }
+
+        // 3. 归一化概率（防止玩家面板概率加起来不等于1）
+        float normN = NProb / totalProb;
+        float normR = RProb / totalProb;
+        float normSR = SRProb / totalProb;
+        float normSRR = SRRProb / totalProb;
+
+        // 循环抽取对应数量卡牌
         for (int i = 0; i < storeSize; i++)
         {
-            Card selectedCard = GetRandomCardByRarity();
+            Card selectedCard = GetRandomCardByRarity(normN, normR, normSR, normSRR);
             if (selectedCard != null)
                 StoreCards.Add(selectedCard);
         }
+        Debug.Log($"商店刷新完成，当前商店卡牌数量：{StoreCards.Count}");
     }
 
-    // 根据概率决定稀有度，然后从对应池子随机取一张卡
-    private Card GetRandomCardByRarity()
+    /// <summary>
+    /// 根据归一化随机roll稀有度，返回随机卡牌
+    /// 抽卡区间：
+    /// 0 ~ normN           = N普通
+    /// normN ~ normN+normR = R精良
+    /// normN+normR ~ sumSR = SR稀有
+    /// sumSR ~ 1           = SRR传说
+    /// </summary>
+    private Card GetRandomCardByRarity(float normN, float normR, float normSR, float normSRR)
     {
         float roll = Random.Range(0f, 1f);
-        float ordinaryRange = ordinaryProb;
-        float generalRange = ordinaryProb + generalProb;
+        float rThreshold = normN;
+        float srThreshold = normN + normR;
+        float srrThreshold = normN + normR + normSR;
 
-        if (roll < ordinaryRange && ordinaryCards.Count > 0)
-            return GetRandomCardFromList(ordinaryCards);
-        else if (roll < generalRange && generalCards.Count > 0)
-            return GetRandomCardFromList(generalCards);
-        else if (rareCards.Count > 0)
-            return GetRandomCardFromList(rareCards);
+        List<Card> targetPool = null;
+
+        // 按roll值匹配稀有度卡池
+        if (roll < rThreshold)
+        {
+            targetPool = Ncards;
+        }
+        else if (roll < srThreshold)
+        {
+            targetPool = Rcards;
+        }
+        else if (roll < srrThreshold)
+        {
+            targetPool = SRcards;
+        }
         else
         {
-            // 降级处理：如果目标稀有度池为空，尝试其他池子
-            if (ordinaryCards.Count > 0) return GetRandomCardFromList(ordinaryCards);
-            if (generalCards.Count > 0) return GetRandomCardFromList(generalCards);
-            if (rareCards.Count > 0) return GetRandomCardFromList(rareCards);
-            Debug.LogWarning("所有卡池均为空，无法抽卡");
+            targetPool = SRRcards;
+        }
+
+        // 如果目标卡池为空，逐级降级兜底
+        if (targetPool.Count == 0)
+        {
+            if (targetPool == SRRcards && SRcards.Count > 0) targetPool = SRcards;
+            else if (targetPool == SRcards && Rcards.Count > 0) targetPool = Rcards;
+            else if (targetPool == Rcards && Ncards.Count > 0) targetPool = Ncards;
+            else if (targetPool == Ncards)
+            {
+                // N也空，兜底随便找一个有内容的池子
+                if (Rcards.Count > 0) targetPool = Rcards;
+                else if (SRcards.Count > 0) targetPool = SRcards;
+                else if (SRRcards.Count > 0) targetPool = SRRcards;
+            }
+        }
+
+        // 全部池子都空
+        if (targetPool == null || targetPool.Count == 0)
+        {
+            Debug.LogWarning("抽卡时无可用卡池");
             return null;
         }
+
+        // 从目标池随机返回一张
+        int randomIdx = Random.Range(0, targetPool.Count);
+        return targetPool[randomIdx];
     }
     // 从列表中随机取一张卡（深拷贝可选，根据你的需求决定）
     private Card GetRandomCardFromList(List<Card> cardList)
@@ -179,10 +236,29 @@ public class StoreSystem : Singleton<StoreSystem>
         }
 
         // 将购买的卡牌添加到玩家卡组
-        PlayerDataManager.Instance.AddCardsToDeck(cardsToBuy);
+        foreach (var card in cardsToBuy)
+        {
+            if (card == null)
+            {
+                Debug.LogWarning("待购买卡牌为空，跳过");
+                continue;
+            }
 
-        Debug.Log($"购买成功，共 {cardsToBuy.Count} 张卡牌，花费 {totalCost} 金币");
-        
+
+            if (card is WeaponCard weaponCard)
+            {
+                // weapon 和 card 是同一个实例，Weapon独有的字段不会丢失
+                PlayerDataManager.Instance.AddCardToWeaponDeck(weaponCard);
+                Debug.Log($"购入武器卡{weaponCard.CardId}，存入武器卡组");
+            }
+            else
+            {
+                // 普通卡牌，原始card完整传入
+                PlayerDataManager.Instance.AddCardToDeck(card);
+                Debug.Log($"购入普通卡{card.CardId}，存入主卡组");
+            }
+        }
+
     }
 
 
@@ -237,14 +313,5 @@ public class StoreSystem : Singleton<StoreSystem>
         Destroy(cardLogic.gameObject);
     }
 
-    void Start()
-    {
 
-    }
-
-
-    void Update()
-    {
-
-    }
 }

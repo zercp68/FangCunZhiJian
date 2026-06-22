@@ -7,19 +7,20 @@ using UnityEngine.UI;
 public class EnemyView : CombatantView
 {
     [SerializeField] private Text attackText;
-    /// <summary>
-    /// 敌人攻击力
-    /// </summary>
     public int AttackPower { get; set; }
-    /// <summary>
-    /// 敌人防御力
-    /// </summary>
     public int DefensePower { get; set; }
+
+    //新增：灼烧相关
+    public int BurnStacks { get; set; }          // 当前灼烧层数
+    public int BurnRemainingTurns { get; set; }  // 剩余持续回合数
     public void Setup(EnemyData enemyData)
     {
         AttackPower =enemyData.AttackPower;
         UpdateAttackText();
         SetupBase(enemyData.Health, enemyData.sprite);
+
+        BurnStacks = 0;
+        BurnRemainingTurns = 0;
     }
 
     public override void Damage(int damageAmount)
@@ -42,6 +43,4 @@ public class EnemyView : CombatantView
     {
         attackText.text = "Def:" + DefensePower;
     }
-
-
 }

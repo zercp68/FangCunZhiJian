@@ -9,6 +9,8 @@ using UnityEngine;
 /// </summary>
 public class CombatSystem : MonoBehaviour
 {
+    public CombatUI CombatUI;
+
     // ======================= 配置常量 =======================
     private const float BASE_HIT_RATE = 0.8f;       // 固定命中率80%
     private const float DEFAULT_CRIT_DAMAGE = 2f; // 默认暴伤150%
@@ -46,6 +48,7 @@ public class CombatSystem : MonoBehaviour
     public int TempBurnStacks { get; private set; }          // 火：灼烧层数（本次攻击附加真实伤害 = 层数×2）
     public float TempHealPercentTotal { get; private set; }  // 木：基于伤害的回血比例总和
     public int TempExtraHealFlat { get; private set; }       // 四木：额外固定回血
+    public int TempAtkFlat { get; private set; }   // 临时固定攻击力加成（部件牌）
 
     // ======================= 公共方法 =======================
     /// <summary> 重置回合临时状态（回合开始时调用）</summary>
@@ -59,6 +62,8 @@ public class CombatSystem : MonoBehaviour
         TempBurnStacks = 0;
         TempHealPercentTotal = 0f;
         TempExtraHealFlat = 0;
+        TempAtkFlat = 0;   // 每回合重置
+        UpdateUI(); //重置后更新
     }
 
     /// <summary> 装备武器（从武器卡读取数值）</summary>
@@ -76,6 +81,8 @@ public class CombatSystem : MonoBehaviour
         BaseCritDamage = weapon.baseCritDamage != 0 ? weapon.baseCritDamage : DEFAULT_CRIT_DAMAGE;
         BaseHitRate = BASE_HIT_RATE;
         ElementMult = weapon.elementMult;
+
+        UpdateUI(); // 装备后更新
     }
 
     /// <summary> 打出一张属性牌，累加临时效果（支持相生翻倍）</summary>
@@ -122,8 +129,17 @@ public class CombatSystem : MonoBehaviour
                 TempDefFlat += finalDef;
                 break;
         }
-    }
 
+        UpdateUI(); //属性牌打出后更新
+    }
+    public void AddComponentCard(ComponentCard componentCard)
+    {
+        // 固定攻击力 +1（符合表格描述）
+        TempAtkFlat += 1;
+
+        // 更新 UI
+        UpdateUI();
+    }
     /// <summary> 执行攻击动作，计算伤害并产生原子动作 </summary>
     public IEnumerator ExecuteAttack(ActionCard actionCard, EnemyView target)
     {
@@ -141,19 +157,22 @@ public class CombatSystem : MonoBehaviour
                 }
             }
         }
-
+        UpdateUIWithActionMult(actionDmgMult);
         // 2. 全属性乘区（来自水牌）
         float allStatMult = 1 + TempAllStatBonus;
 
         // 3. 最终攻击力 = 基础攻击 × (1+临时攻击加成) × 动作倍率 × 全属性乘区
-        float finalAttack = BaseAttack * (1 + TempAtkPercentBonus) * actionDmgMult * allStatMult;
+        float finalAttack = (BaseAttack + TempAtkFlat)   // 基础攻击 + 部件牌固定加成
+                  * (1 + TempAtkPercentBonus)     // 火/土百分比加成
+                  * actionDmgMult                 // 动作倍率
+                  * allStatMult;                  // 水全属性加成
 
         // 4. 最终暴击率 / 暴伤（命中率固定0.8，不参与计算）
         float finalCritRate = Mathf.Min(1f, (BaseCritRate + TempCritRateBonus + actionCritRate) * allStatMult);
         float finalCritDmg = (BaseCritDamage + actionCritDmg) * allStatMult;
         
 
-        finalCritDmg = 2;
+        
         Debug.Log(BaseCritRate);
         Debug.Log(TempCritRateBonus);
         Debug.Log(actionCritRate);
@@ -167,14 +186,26 @@ public class CombatSystem : MonoBehaviour
         if (!hit)
         {
             Debug.Log($"{actionCard.CardId} 未命中！");
+            ResetTurnState();
             yield break;
         }
 
-        // 6. 暴击判定 & 基础伤害计算
+        // ========== 6. 伤害计算（向上取整，保底1点） ==========
         bool isCrit = Random.value <= finalCritRate;
-        int baseDamage = Mathf.Max(0, (int)finalAttack - target.DefensePower);
-        int physicalDamage = isCrit ? (int)(baseDamage * finalCritDmg) : baseDamage;
-        Debug.Log(physicalDamage);
+
+        // 6a. 计算浮点伤害（攻击 - 防御）
+        float rawDamage = finalAttack - target.DefensePower;
+        if (rawDamage < 0) rawDamage = 0;
+
+        // 6b. 向上取整，保底 1 点伤害
+        int baseDamage = Mathf.Max(1, Mathf.CeilToInt(rawDamage));
+
+        // 6c. 暴击伤害（同样向上取整）
+        int physicalDamage = isCrit
+            ? Mathf.CeilToInt(baseDamage * finalCritDmg)
+            : baseDamage;
+
+        Debug.Log($"物理伤害: {physicalDamage} (暴击: {isCrit})");
 
         // 7. 灼烧真实伤害（每层2点，本次攻击附加）
         int burnDamage = TempBurnStacks * 2;
@@ -200,7 +231,7 @@ public class CombatSystem : MonoBehaviour
         // 10. 施加灼烧持续效果（后续每回合造成伤害）
         if (TempBurnStacks > 0)
         {
-            ActionSystem.Instance.AddReaction(new ApplyBurnGA(target, TempBurnStacks));
+            ActionSystem.Instance.AddReaction(new ApplyBurnGA(target, TempBurnStacks,2));
         }
 
         // 11. 清空本回合临时状态（属性牌仅本次攻击生效）
@@ -221,7 +252,11 @@ public class CombatSystem : MonoBehaviour
 
         float allStatMult = 1 + TempAllStatBonus;
         int finalDefense = (int)((BaseDefense + TempDefFlat + actionDefBonus) * allStatMult);
-
+        if (CombatUI != null)
+        {
+            float totalDef = BaseDefense + TempDefFlat + actionDefBonus; // 防御基础 + 防御加成（含动作牌）
+            CombatUI.UpdateDef(totalDef);
+        }
         // 防御后清空临时状态
         ResetTurnState();
         return finalDefense;
@@ -238,6 +273,31 @@ public class CombatSystem : MonoBehaviour
             effect.Setup(stats);
         }
         return stats;
+    }
+    public void UpdateUI()
+    {
+        UpdateUIWithActionMult(1f);
+    }
+    public void UpdateUIWithActionMult(float actionMult)
+    {
+        if (CombatUI == null) return;
+
+        // 总基础 = 基础攻击 + 部件加成
+        float totalBase = BaseAttack + TempAtkFlat;
+
+        // 总倍率 = 元素倍率 × 动作倍率
+        float elementMult = (1 + TempAtkPercentBonus) * (1 + TempAllStatBonus);
+        float totalMult = elementMult * actionMult;
+
+        CombatUI.UpdateCore(totalBase, totalMult);
+
+        // 可选：最终伤害 = 总基础 × 总倍率
+        float finalDamage = totalBase * totalMult;
+        //CombatUI.UpdateFinalDamage(finalDamage);
+
+        // 总防御 = 基础防御 + 防御加成
+        float totalDef = BaseDefense + TempDefFlat;
+        CombatUI.UpdateDef(totalDef);
     }
 }
 

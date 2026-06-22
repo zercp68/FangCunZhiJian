@@ -46,5 +46,9 @@ public class CombatantView : MonoBehaviour
 
         UpdateHealth(currentHp, MAX_HP);
     }
-
+    public virtual void Heal(int amount)
+    {
+        currentHp = Mathf.Min(MAX_HP, currentHp + amount);
+        UpdateHealth(currentHp, MAX_HP);
+    }
 }

@@ -11,6 +11,7 @@ public class Card
     public E_CardType E_CardType => data.CardType;
     public string Description => data.Description;
     public Sprite Image => data.Image;
+    public E_Rarity E_Rarity => data.E_Rarity;
 
 
 

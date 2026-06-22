@@ -9,11 +9,13 @@ using UnityEngine;
 public class ApplyBurnGA : GameAction
 {
     public EnemyView Target { get; private set; }
-    public int Stacks { get; private set; }   // 灼烧层数
+    public int Stacks { get; private set; }
+    public int Duration { get; private set; } // 新增：持续回合数
 
-    public ApplyBurnGA(EnemyView target, int stacks)
+    public ApplyBurnGA(EnemyView target, int stacks, int duration)
     {
         Target = target;
         Stacks = stacks;
+        Duration = duration;
     }
 }

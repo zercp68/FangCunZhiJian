@@ -34,7 +34,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     private void Start()
     {
         InitNewGame();
-        UIManager.Instance.ShowPanel<MathPanel>();
+        UIManager.Instance.ShowPanel<SynthesisPanel>();
     }
 
     /// <summary>

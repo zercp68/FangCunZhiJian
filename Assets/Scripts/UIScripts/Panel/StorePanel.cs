@@ -5,10 +5,6 @@ using UnityEngine.UI;
 
 public class StorePanel : BasePanel
 {
-    [Header("References")]
-    [SerializeField] private List<CardData> deckData1;
-    [SerializeField] private List<CardData> deckData2;
-    [SerializeField] private List<CardData> deckData3;
 
     public Text txtCurrentMoney;
     public Button btnRethrowing;
@@ -43,7 +39,7 @@ public class StorePanel : BasePanel
         if (PlayerDataManager.Instance != null)
             PlayerDataManager.Instance.OnMoneyChanged += UpdateMoneyDisplay;
 
-        StoreSystem.Instance.setUp(deckData1, deckData2, deckData3);
+        StoreSystem.Instance.setUp();
         DrawStoreCardsGA drawStoreCardsGA = new DrawStoreCardsGA();
         ActionSystem.Instance.Perform(drawStoreCardsGA);
 

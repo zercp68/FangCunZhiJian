@@ -7,19 +7,21 @@ using UnityEngine;
 public class EnemySystem : Singleton<EnemySystem>
 {
     [SerializeField]private EnemyBoardView enemyBoardView;
+    [SerializeField]private GameObject BurnEnemyVFX;
 
     private void OnEnable()
     {
         ActionSystem.AttachPerformer<EnemyTurnGA>(EnemyTurnPerformer);
         ActionSystem.AttachPerformer<AttackHeroGA>(AttackHeroPerformer);
         ActionSystem.AttachPerformer<KillEnemyGA>(KillEnemyPerformer);
+        ActionSystem.AttachPerformer<ApplyBurnGA>(ApplyBurnPerformer);
     }
     private void OnDisable()
     {
         ActionSystem.DetachPerformer<EnemyTurnGA>();
         ActionSystem.DetachPerformer<AttackHeroGA>();
         ActionSystem.DetachPerformer<KillEnemyGA>();
-
+        ActionSystem.DetachPerformer<ApplyBurnGA>();
     }
 
     public void Setup(List<EnemyData> enemyDatas)
@@ -32,6 +34,32 @@ public class EnemySystem : Singleton<EnemySystem>
     
     private IEnumerator EnemyTurnPerformer(EnemyTurnGA enemyTurnGA)
     {
+        // 1. 先处理灼烧伤害（在敌人攻击之前）
+        foreach (var enemy in enemyBoardView.EnemyViews)
+        {
+            if (enemy.BurnStacks > 0 && enemy.BurnRemainingTurns > 0)
+            {
+                // 造成灼烧伤害：层数 × 2
+                int burnDamage = enemy.BurnStacks * 2;
+                DealDamageGA dealDamageGA = new(burnDamage, new List<CombatantView> { enemy });
+                ActionSystem.Instance.AddReaction(dealDamageGA);
+
+                // 减少剩余回合数
+                enemy.BurnRemainingTurns--;
+
+                Debug.Log($"敌人 {enemy.name} 受到 {burnDamage} 点灼烧伤害，剩余 {enemy.BurnRemainingTurns} 回合");
+
+                // 如果回合数归零，清除灼烧层数
+                if (enemy.BurnRemainingTurns <= 0)
+                {
+                    enemy.BurnStacks = 0;
+                    Debug.Log($"敌人 {enemy.name} 灼烧效果消失");
+                }
+            }
+        }
+        yield return null;
+
+
         foreach (var enemy in enemyBoardView.EnemyViews)
         {
             AttackHeroGA attackHeroGA = new(enemy);
@@ -70,7 +98,22 @@ public class EnemySystem : Singleton<EnemySystem>
     {
         yield return enemyBoardView.RemoveEnemy(killEnemyGA.EnemyView);
     }
+    public IEnumerator ApplyBurnPerformer(ApplyBurnGA applyBurnGA)
+    {
+        EnemyView target = applyBurnGA.Target;
 
+        // 1. 播放特效
+        GameObject vfx = Instantiate(BurnEnemyVFX, target.transform.position, Quaternion.identity);
+        Destroy(vfx, 1f); // 1秒后自动销毁，避免一直残留
+
+        // 2. 将灼烧层数存储到敌人身上（如果已有则叠加）
+        target.BurnStacks += applyBurnGA.Stacks;
+
+        // 3. 设置持续回合数（这里固定2回合，或从ApplyBurnGA传入）
+        target.BurnRemainingTurns = applyBurnGA.Duration; 
+
+        yield return null;
+    }
     #region 计算敌人对英雄的伤害
     /// <summary>
     /// 计算敌人对你的最终伤害（自带随机浮动 + 随机暴击）

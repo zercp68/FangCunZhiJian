@@ -34,6 +34,26 @@ public enum E_CardType
     /// </summary>
     weapon
 }
+public enum E_Rarity
+{
+    /// <summary>
+    /// 普通
+    /// </summary>
+    N,
+    /// <summary>
+    /// 进阶
+    /// </summary>
+    R,
+    /// <summary>
+    /// 稀有
+    /// </summary>
+    SR,
+    /// <summary>
+    /// 传说
+    /// </summary>
+    SSR
+}
+
 
 [CreateAssetMenu(fileName ="NewCardData",menuName ="Data/Card")]
 public class CardData : ScriptableObject
@@ -63,11 +83,15 @@ public class CardData : ScriptableObject
     /// 卡牌金额
     /// </summary>
     [field:SerializeField]public int CardMoney {  get;private set; }
-
+    /// <summary>
+    /// 卡牌稀有度
+    /// </summary>
+    [field: SerializeField] public E_Rarity E_Rarity { get; private set; }
     /// <summary>
     /// 对左手还是右手的武器赋能
     /// </summary>
     public E_WeaponHand E_WeaponHand;
+
     /// <summary>
     /// 效果，数值表
     /// </summary>
