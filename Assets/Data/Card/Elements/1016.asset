@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b15801192a398a848917753ad11bbd82, type: 3}
+  m_Name: 1016
+  m_EditorClassIdentifier: 
+  <cardId>k__BackingField: 1016
+  <CardType>k__BackingField: 1
+  <Description>k__BackingField: "[SSR]4\u6C14\u5143,\u9020\u621040%\u989D\u5916\u707C\u70E7\u4F24\u5BB3\uFF0C\u6301\u7EED2\u56DE\u5408 "
+  <manaCost>k__BackingField: 4
+  <Image>k__BackingField: {fileID: 21300000, guid: 53ccb4ecaeac83f4cbeb52c6a17ccb9e, type: 3}
+  <CardMoney>k__BackingField: 100
+  <E_Rarity>k__BackingField: 3
+  E_WeaponHand: 0
+  <Effects>k__BackingField:
+  - rid: 6257529003975901212
+  - rid: 6257529003975901213
+  <E_ElementType>k__BackingField: 3
+  references:
+    version: 2
+    RefIds:
+    - rid: 6257529003975901212
+      type: {class: BurnStackEffect, ns: , asm: Assembly-CSharp}
+      data:
+        burnStacks: 10
+    - rid: 6257529003975901213
+      type: {class: DamagePercentBonusEffect, ns: , asm: Assembly-CSharp}
+      data:
+        damagePercentBonus: 0.4

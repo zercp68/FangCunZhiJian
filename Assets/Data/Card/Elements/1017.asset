@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b15801192a398a848917753ad11bbd82, type: 3}
+  m_Name: 1017
+  m_EditorClassIdentifier: 
+  <cardId>k__BackingField: 1017
+  <CardType>k__BackingField: 1
+  <Description>k__BackingField: "[N]1\u6C14\u5143,2\u70B9\u56FA\u5B9A\u9632\u5FA1\u503C,\u4F24\u5BB3\u51CF\u514D10%"
+  <manaCost>k__BackingField: 1
+  <Image>k__BackingField: {fileID: 21300000, guid: 7fd0e18e4e13ca843ace7031ae0bfb2e, type: 3}
+  <CardMoney>k__BackingField: 20
+  <E_Rarity>k__BackingField: 0
+  E_WeaponHand: 0
+  <Effects>k__BackingField:
+  - rid: 6257529003975901214
+  - rid: 6257529003975901215
+  <E_ElementType>k__BackingField: 4
+  references:
+    version: 2
+    RefIds:
+    - rid: 6257529003975901214
+      type: {class: DefenseFlatBonusEffect, ns: , asm: Assembly-CSharp}
+      data:
+        defenseFlatBonus: 2
+    - rid: 6257529003975901215
+      type: {class: DamageReductionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        attackType: 0
+        reductionPercent: 0.1

@@ -15,7 +15,13 @@ public class HeroView : CombatantView
     }
     public override void Damage(int damageAmount)
     {
-        // 先扣护盾
+        //1. 先应用防御减免/免疫/反弹（新增）
+        damageAmount = HeroSystem.Instance.ApplyDefenseBeforeDamage(damageAmount);
+
+        // 如果减免后伤害为0，直接返回（不触发护盾和掉血）
+        if (damageAmount <= 0) return;
+
+        // 2. 再处理护盾抵扣
         int remainingDamage = damageAmount;
         if (currentShield > 0)
         {
@@ -24,9 +30,9 @@ public class HeroView : CombatantView
             remainingDamage -= shieldUsed;
         }
 
+        // 3. 最后调用基类扣血
         base.Damage(remainingDamage);
     }
-
     public void ClearShield()
     {
         currentShield = 0;

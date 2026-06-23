@@ -7,7 +7,7 @@ using UnityEngine;
 /// 战斗数值核心系统（MonoBehaviour单例）
 /// 严格遵循表格数值体系，保留五行相生翻倍机制
 /// </summary>
-public class CombatSystem : MonoBehaviour
+public class CombatSystem : Singleton<CombatSystem>
 {
     public CombatUI CombatUI;
 
@@ -45,10 +45,15 @@ public class CombatSystem : MonoBehaviour
     public float TempAtkPercentBonus { get; private set; }   // 火：伤害百分比加成
     public int TempDefFlat { get; private set; }             // 土：固定防御加成
     public float TempCritRateBonus { get; private set; }     // 金：暴击率加成
+    public float TempCritDamageBonus;  //新增：暴击伤害加成
     public int TempBurnStacks { get; private set; }          // 火：灼烧层数（本次攻击附加真实伤害 = 层数×2）
     public float TempHealPercentTotal { get; private set; }  // 木：基于伤害的回血比例总和
     public int TempExtraHealFlat { get; private set; }       // 四木：额外固定回血
     public int TempAtkFlat { get; private set; }   // 临时固定攻击力加成（部件牌）
+    public float TempDamageReduction { get; private set; }      // 总伤害减免比例
+    public float TempReflectPercent { get; private set; }       // 反弹比例
+    public int TempImmuneCount;         // 剩余免疫次数
+    public bool TempClearEnemyBuffs { get; private set; }       // 是否清空敌方增益
 
     // ======================= 公共方法 =======================
     /// <summary> 重置回合临时状态（回合开始时调用）</summary>
@@ -59,10 +64,15 @@ public class CombatSystem : MonoBehaviour
         TempAtkPercentBonus = 0f;
         TempDefFlat = 0;
         TempCritRateBonus = 0f;
+        TempCritDamageBonus = 0f;
         TempBurnStacks = 0;
         TempHealPercentTotal = 0f;
         TempExtraHealFlat = 0;
         TempAtkFlat = 0;   // 每回合重置
+        TempDamageReduction = 0f;
+        TempReflectPercent = 0f;
+        TempImmuneCount = 0;
+        TempClearEnemyBuffs = false;
         UpdateUI(); //重置后更新
     }
 
@@ -103,6 +113,11 @@ public class CombatSystem : MonoBehaviour
                 float finalCrit = stats.critRateBonus;
                 if (trigger) finalCrit *= 2;
                 TempCritRateBonus += finalCrit;
+
+                
+                float finalCritDmg = stats.critDamageBonus;
+                if (trigger) finalCritDmg *= 2;
+                TempCritDamageBonus += finalCritDmg;
                 break;
             case E_ElementType.Wood:
                 float finalHeal = stats.healPercent;
@@ -134,10 +149,13 @@ public class CombatSystem : MonoBehaviour
     }
     public void AddComponentCard(ComponentCard componentCard)
     {
-        // 固定攻击力 +1（符合表格描述）
-        TempAtkFlat += 1;
-
-        // 更新 UI
+        foreach (var effect in componentCard.Effects)
+        {
+            if (effect is ComponentStatEffect compEffect)
+            {
+                TempAtkFlat += compEffect.attackBonus;
+            }
+        }
         UpdateUI();
     }
     /// <summary> 执行攻击动作，计算伤害并产生原子动作 </summary>
@@ -169,10 +187,10 @@ public class CombatSystem : MonoBehaviour
 
         // 4. 最终暴击率 / 暴伤（命中率固定0.8，不参与计算）
         float finalCritRate = Mathf.Min(1f, (BaseCritRate + TempCritRateBonus + actionCritRate) * allStatMult);
-        float finalCritDmg = (BaseCritDamage + actionCritDmg) * allStatMult;
-        
+        float finalCritDmg = (BaseCritDamage + actionCritDmg + TempCritDamageBonus) * allStatMult;
 
-        
+
+
         Debug.Log(BaseCritRate);
         Debug.Log(TempCritRateBonus);
         Debug.Log(actionCritRate);
@@ -261,7 +279,13 @@ public class CombatSystem : MonoBehaviour
         ResetTurnState();
         return finalDefense;
     }
-
+    public void SetDefenseEffects(float reduction, float reflect, int immune, bool clearBuffs)
+    {
+        TempDamageReduction = reduction;
+        TempReflectPercent = reflect;
+        TempImmuneCount = immune;
+        TempClearEnemyBuffs = clearBuffs;
+    }
     // ======================= 私有辅助 =======================
     private CombatStats GetBaseEffect(ElementCard elementCard)
     {

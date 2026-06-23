@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb8844a765be26045bde86928733523e, type: 3}
+  m_Name: 2006
+  m_EditorClassIdentifier: 
+  <cardId>k__BackingField: 2006
+  <CardType>k__BackingField: 0
+  <Description>k__BackingField: "[SR]2\u52B2\u5143,\u5200/\u5251/\u65A7,140%\u653B\u51FB\u4F24\u5BB3,\u66B4\u51FB\u52A050%"
+  <manaCost>k__BackingField: 2
+  <Image>k__BackingField: {fileID: 21300000, guid: f1f757b27ad5a1045a949aef1aa5e787, type: 3}
+  <CardMoney>k__BackingField: 80
+  <E_Rarity>k__BackingField: 2
+  E_WeaponHand: 0
+  <Effects>k__BackingField:
+  - rid: 6257529003975901188
+  - rid: 6257529003975901189
+  <E_validWeaponTypes>k__BackingField: 000000000300000004000000
+  <isDefenseAction>k__BackingField: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 6257529003975901188
+      type: {class: ActionStatEffect, ns: , asm: Assembly-CSharp}
+      data:
+        statType: 2
+        value: 1.4
+    - rid: 6257529003975901189
+      type: {class: ActionStatEffect, ns: , asm: Assembly-CSharp}
+      data:
+        statType: 0
+        value: 0.5

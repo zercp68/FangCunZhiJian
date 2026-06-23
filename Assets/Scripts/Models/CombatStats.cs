@@ -9,6 +9,7 @@ public class CombatStats
 {
     [Header("金系")]
     public float critRateBonus;      // 暴击率加成（如 0.2 表示 +20%）
+    public float critDamageBonus;
 
     [Header("木系")]
     public float healPercent;        // 基于本次攻击伤害的回血比例（如 0.2 表示回复伤害的20%）

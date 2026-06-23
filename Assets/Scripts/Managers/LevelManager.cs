@@ -15,7 +15,7 @@ public class Level
 
 public class LevelManager : Singleton<LevelManager>
 {
-    [Header("=== 所有合成配方列表 ===")]
+    [Header("=== 所有关卡列表 ===")]
     public List<Level> levels = new List<Level>();
 
     private int currentLevel = 0;

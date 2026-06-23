@@ -72,7 +72,7 @@ public class MatchSetupSystem : Singleton<MatchSetupSystem>
         // 3. 安全获取当前卡组副本并赋值（增加空引用检查）
         if (PlayerDataManager.Instance != null)
         {
-            List<Card> deckCopy = PlayerDataManager.Instance.GetCurrentDeckCopy();
+            List<Card> deckCopy = PlayerDataManager.Instance.GetCurrentHandDeckCopy();
             deckCards.AddRange(deckCopy); // 赋值核心逻辑（也可直接 deckCards = deckCopy;）
             Debug.Log($"MatchSetup: 从PlayerDataManager获取到卡组数量: {deckCopy.Count}"); // 新增日志
         }

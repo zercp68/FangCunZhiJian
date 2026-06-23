@@ -9,6 +9,7 @@ using UnityEngine;
 /// </summary>
 public enum E_ElementType 
 { 
+
     /// <summary>
     /// ╫П
     /// </summary>
@@ -24,11 +25,12 @@ public enum E_ElementType
     /// <summary>
     /// ╩П
     /// </summary>
-    Fire, 
+    Fire,
     /// <summary>
     /// ма
     /// </summary>
-    Earth 
+    Earth ,
+    None,
 }
 
 

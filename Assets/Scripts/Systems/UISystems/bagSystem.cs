@@ -1,6 +1,7 @@
 using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,6 +12,7 @@ enum E_bagCardType
     actCard,
     eleCard,
     weaCard,
+    comCard
 }
 
 public class bagSystem : Singleton<bagSystem>
@@ -27,6 +29,7 @@ public class bagSystem : Singleton<bagSystem>
     public Button btnActCard;
     public Button btnEleCard;
     public Button btnComCard;
+    public Button btnWeaCard;
 
     [Header("设置")]
     public BagCardsHolder BagCardsHolder;
@@ -35,6 +38,7 @@ public class bagSystem : Singleton<bagSystem>
     private List<Card> ActCards;
     private List<Card> EleCards;
     private List<Card> ComCards;
+    private List<Card> WeaCards;
 
 
     [Header("配置")]
@@ -51,7 +55,7 @@ public class bagSystem : Singleton<bagSystem>
     private bool _isPageChanging = false;
     private const float LockDuration = 0.2f;
 
-    private Coroutine currentUpdateCoroutine;   // 记录当前更新协程
+    private Coroutine currentUpdateCoroutine=null;   // 记录当前更新协程
     private bool isCancelling = false;
 
     private void OnEnable()
@@ -78,11 +82,8 @@ public class bagSystem : Singleton<bagSystem>
         GenerateDots();
         // 绑定分页按钮事件
         setupBtnPage();
-
         // 初始化打开第一页
         SwitchPage(0);
-        UpdatePanelGA firstPage = new UpdatePanelGA(0, Mathf.Min(itemsPerPage, currentCards.Count));
-        ActionSystem.Instance.Perform(firstPage);
     }
 
 
@@ -97,12 +98,13 @@ public class bagSystem : Singleton<bagSystem>
         ActCards = new List<Card>();
         EleCards = new List<Card>();
          ComCards= new List<Card>();
+         WeaCards= new List<Card>();
         // 3. 安全获取当前卡组副本并赋值（增加空引用检查）
         if (PlayerDataManager.Instance != null)
         {
-            List<Card> deckCopy = PlayerDataManager.Instance.GetCurrentDeckCopy();
+            List<Card> deckCopy = PlayerDataManager.Instance.GetCurrentAllCardsCopy();
             AllCards.AddRange(deckCopy); // 赋值核心逻辑（也可直接 deckCards = deckCopy;）
-            CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards);
+            CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards,WeaCards);
             Debug.Log($"MatchSetup: 从PlayerDataManager获取到卡组数量: {deckCopy.Count}"); // 新增日志
         }
         else
@@ -201,36 +203,89 @@ public class bagSystem : Singleton<bagSystem>
     /// <summary> 批量弃牌 / 移除卡牌 协程 </summary>
     public IEnumerator DisBagCardViewPerformer(List<CardLogic> cardLogics)
     {
-        // 正在操作中直接拦截
         if (_isPageChanging) yield break;
 
         _isPageChanging = true;
         SetAllInteractable(false);
-
+        // 关键：记录「弃牌前当前页的显示数量」（而非总卡牌数）
+        int lastShowCardNum = Mathf.Min(currentCards.Count, itemsPerPage);
+        int discardCardNum = 0;
         foreach (var cardLogic in cardLogics)
         {
             if (cardLogic == null) continue;
-
-            // 全局卡组移除卡牌
+            discardCardNum++;
             AllCards.Remove(cardLogic.card);
-            // 等待单张卡牌销毁+动画完成
             yield return DiscardCard(cardLogic);
         }
 
-        // 重新按类型拆分卡组
-        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards);
+        // 重新拆分卡组
+        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards, WeaCards);
+        setCurrentCards();
+        GenerateDots();
+        yield return null;
+        setupBtnPage();
 
-        // 弃牌后同样刷新当前页，自动补下一页卡牌进来填满空位
-
-        RefreshCurrentBagView();
+        // 关键：判断条件改为「弃牌前当前页是满的（>=每页上限）」
+        if (lastShowCardNum >= itemsPerPage)
+        {
+            yield return AddBackcards(discardCardNum);
+        }
         yield return new WaitForSeconds(LockDuration);
         ResetPageLock();
-
-        UpdatePanelGA firstPage = new UpdatePanelGA(0, Mathf.Min(itemsPerPage, currentCards.Count));
-        ActionSystem.Instance.AddReaction(firstPage);
     }
+
+    /// <summary> 将后面的牌补进当前页 </summary>
+    public IEnumerator AddBackcards(int discardCardNum)
+    {
+        // 移除错误的状态锁拦截（外层已经锁了，无需重复拦截）
+        // if (_isPageChanging) yield return null; 
+
+        // 1. 基础校验
+        if (discardCardNum <= 0 || currentCards == null || currentCards.Count == 0)
+        {
+            Debug.LogWarning("无卡牌可补：弃牌数为0或当前卡组为空");
+            yield break;
+        }
+
+        // 2. 复用配置的每页数量，而非硬编码16
+        int pageMax = itemsPerPage;
+
+
+        // 3. 正确计算补牌下标（核心修复）
+        // 当前页已显示的卡牌数 = 弃牌后当前页剩余数（当前页显示上限 - 弃牌数）
+        int currentShowCount = pageMax - discardCardNum;
+        // 补牌起始下标：当前页最后一张的下一位（比如当前显示12张，从12开始补）
+        int fillStart = currentShowCount;
+        if (fillStart >= currentCards.Count) yield break; // 新增：无卡可补直接返回
+        // 补牌结束下标：不超过总卡牌数、不超过单页上限
+        int fillEnd = Mathf.Min(fillStart + discardCardNum, currentCards.Count);
+        fillEnd = Mathf.Min(fillEnd, pageMax); // 兜底：不超过单页上限
+
+        // 4. 边界校验：无牌可补
+        if (fillStart >= fillEnd)
+        {
+            Debug.Log("无额外卡牌可补：已达卡组末尾/单页上限");
+            yield break;
+        }
+
+        // 5. 循环补牌（带越界保护）
+        for (int i = fillStart; i < fillEnd; i++)
+        {
+            if (i < 0 || i >= currentCards.Count)
+            {
+                Debug.LogWarning($"补牌下标越界：i={i}，总卡牌数={currentCards.Count}");
+                break;
+            }
+
+            Card card = currentCards[i];
+            yield return BagCardsHolder.AddCard(card, drawPilePoint);
+            Debug.Log($"补牌成功：卡牌={card.CardId}，下标={i}");
+        }
+        yield return null;
+    }
+
     /// <summary> 添加单张卡牌协程 </summary>
-    public IEnumerator AddBagCardViewPerformer(List<Card> cards)
+    public IEnumerator AddBagCardViewPerformer(List<Card> cards,bool isSynthesis)
     {
         // 防重复执行
         if (_isPageChanging) yield break;
@@ -238,20 +293,50 @@ public class bagSystem : Singleton<bagSystem>
         _isPageChanging = true;
         SetAllInteractable(false);
 
-        // 1. 把卡牌加入总卡组
-        AllCards.AddRange(cards);
-        // 2. 重新按类型拆分卡牌
-        CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards);
+        if (isSynthesis)
+        {
+            // 合成场景：重新从PlayerDataManager加载全量卡牌（保证数据源最新）
+            setupCards();
+            yield return null;
+            Debug.Log($"[AddBagCardView] 合成场景，重新加载全量卡牌，总数：{AllCards.Count}");
+        }
+        else
+        {
+            // 非合成场景：增量添加卡牌
+            AllCards.AddRange(cards);
+            // 重新拆分卡牌类型（保证分类数据同步）
+            CardManager.Instance.SplitCardsByType(AllCards, ActCards, EleCards, ComCards, WeaCards);
+            Debug.Log($"[AddBagCardView] 增量添加卡牌 {cards.Count} 张，全量卡牌总数：{AllCards.Count}");
+        }
 
+        // 更新当前显示的卡牌列表（根据选中的分类）
 
-        // 3. 刷新当前分类页面（关键！重新加载当前页，补全空位）
-        RefreshCurrentBagView();
+        setCurrentCards();
+
+        int pageStart = currentPageIndex * itemsPerPage;
+        int pageEnd = Mathf.Min(pageStart + itemsPerPage, currentCards.Count);
+        int targetShowCount = pageEnd - pageStart;          // 当前页应有的卡片数
+        int currentShowCount = BagCardsHolder.cardLogics.Count; // UI 中已存在的卡片数
+        int needFill = Mathf.Max(0, targetShowCount - currentShowCount);
+
+        if (needFill > 0)
+        {
+            int startIndex = pageStart + currentShowCount;   // 从 UI 已有位置的下一张开始补
+            int endIndex = Mathf.Min(startIndex + needFill, currentCards.Count);
+            for (int i = startIndex; i < endIndex; i++)
+            {
+                Card card = currentCards[i];
+                yield return BagCardsHolder.AddCard(card, drawPilePoint);
+            }
+        }
+        GenerateDots();
+        yield return null;
+        setupBtnPage();
 
         // 延时解锁，恢复交互
         yield return new WaitForSeconds(LockDuration);
         ResetPageLock();
-        UpdatePanelGA firstPage = new UpdatePanelGA(0, Mathf.Min(itemsPerPage, currentCards.Count));
-        ActionSystem.Instance.AddReaction(firstPage);
+        Debug.Log("【背包添加卡牌流程全部结束】");
     }
 
 
@@ -301,8 +386,11 @@ public class bagSystem : Singleton<bagSystem>
             case E_bagCardType.eleCard:
                 SwitchCardType(EleCards);
                 break;
-            case E_bagCardType.weaCard:
+            case E_bagCardType.comCard:
                 SwitchCardType(ComCards);
+                break;
+            case E_bagCardType.weaCard:
+                SwitchCardType(WeaCards);
                 break;
         }
     }
@@ -447,6 +535,26 @@ public class bagSystem : Singleton<bagSystem>
         if (btnNext != null) btnNext.interactable = enable;
     }
 
+    void setCurrentCards()
+    {
+        // 根据当前选中的分类，刷新视图
+        switch (e_NowBagCardType)
+        {
+            case E_bagCardType.allCard:
+                updateCurrentCards(AllCards);
+                break;
+            case E_bagCardType.actCard:
+                updateCurrentCards(ActCards);
+                break;
+            case E_bagCardType.eleCard:
+                updateCurrentCards(EleCards);
+                break;
+            case E_bagCardType.weaCard:
+                updateCurrentCards(WeaCards);
+                break;
+        }
+    }
+
     void updateCurrentCards(List<Card> cards)
     {
         if (currentCards==null)
@@ -454,7 +562,6 @@ public class bagSystem : Singleton<bagSystem>
             currentCards = new List<Card>();
         }
         currentCards.Clear();
-
         currentCards.AddRange(cards);
         GeneratePages();
     }
@@ -483,8 +590,13 @@ public class bagSystem : Singleton<bagSystem>
         });
         btnComCard.onClick.AddListener(() => 
         {
-            e_NowBagCardType = E_bagCardType.weaCard;
+            e_NowBagCardType = E_bagCardType.comCard;
             SwitchCardTypeWithInterrupt(ComCards);
+        });
+        btnWeaCard.onClick.AddListener(() => 
+        {
+            e_NowBagCardType = E_bagCardType.weaCard;
+            SwitchCardTypeWithInterrupt(WeaCards);
         });
     }
     private void SwitchCardTypeWithInterrupt(List<Card> targetCards)

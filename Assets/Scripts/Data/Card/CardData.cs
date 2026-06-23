@@ -32,7 +32,11 @@ public enum E_CardType
     /// <summary>
     /// ÎäÆ÷¿¨ÅÆ
     /// </summary>
-    weapon
+    weapon,
+    /// <summary>
+    /// ²¿¼şÅÆ
+    /// </summary>
+    Component
 }
 public enum E_Rarity
 {

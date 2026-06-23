@@ -14,28 +14,23 @@ public class CardManager : Singleton<CardManager>
 
     private List<ConbimeInfo> combineCfg = new List<ConbimeInfo>();
 
-    protected override void Awake()
-    {
-        base.Awake();
-
-        //combineCfg.Add("卡牌1", new List<string>() { "卡牌2", "卡牌3"});
-
-        //foreach (var item in combineCfg)
-        //{
-        //    item.otherCards
-        //}
-        fillCardList(allCardDatas, allCards);
-    }
 
     [SerializeField] private List<CardData> allCardDatas;
     private List<Card> allCards;
+
+
 
     public void GetAllCards(List<Card> cards)
     {
         cards = new List<Card>();
         cards.AddRange(allCards);
     }
-    
+    public void setup()
+    {
+        // 关键：提前实例化 allCards，避免 fillCardList 操作 null 列表
+        allCards = new List<Card>();
+        fillCardList(allCardDatas, allCards);
+    }
     /// <summary>
     /// 泛型：根据CardData列表生成对应Card实例，填充到目标集合
     /// TData : 卡牌数据基类(可传CardData/WeaponCardData等子类)
@@ -144,12 +139,14 @@ public class CardManager : Singleton<CardManager>
     public void SplitCardsByType(List<Card> cards, 
         List<Card> targetActionCards,   
         List<Card> targetElementCards,
-        List<Card> targetCombatCards)
+        List<Card> targetCombatCards,
+        List<Card> targetWeaponCards)
     {
         // 先清空所有目标列表
         targetActionCards?.Clear();
         targetElementCards?.Clear();
         targetCombatCards?.Clear();
+        targetWeaponCards?.Clear();
 
         if (cards == null)
         {
@@ -173,6 +170,10 @@ public class CardManager : Singleton<CardManager>
             {
                 targetCombatCards?.Add(componentCard);
             }
+            else if (card is WeaponCard weaponCard)
+            {
+                targetWeaponCards?.Add(weaponCard);
+            }
             else
             {
                 // 基础 Card 类型（非子类），如果需要可以单独处理
@@ -180,28 +181,36 @@ public class CardManager : Singleton<CardManager>
             }
         }
     }
-    public void SplitCardsByRarity(List<Card> Ncards,List<Card> Rcards,List<Card> SRcards,List<Card> SRRcards)
+    public void SplitCardsByRarity(List<Card> Ncards, List<Card> Rcards, List<Card> SRcards, List<Card> SRRcards)
     {
-        Ncards = new List<Card>();
-        Rcards = new List<Card>();
-        SRcards = new List<Card>();
-        SRRcards = new List<Card>();
-        foreach(var card in allCards)
-        {
+        //先清空外部传入的列表（判空避免空指针）
+        Ncards?.Clear();
+        Rcards?.Clear();
+        SRcards?.Clear();
+        SRRcards?.Clear();
 
+        if (allCards == null)
+        {
+            Debug.LogError("allCards 为空，无法拆分稀有度");
+            return;
+        }
+
+        foreach (var card in allCards)
+        {
+            if (card == null) continue; // 跳过空卡牌
             switch (card.E_Rarity)
             {
                 case E_Rarity.N:
-                    Ncards.Add(card);
+                    Ncards?.Add(card);
                     break;
                 case E_Rarity.R:
-                    Rcards.Add(card);
+                    Rcards?.Add(card);
                     break;
                 case E_Rarity.SR:
-                    SRcards.Add(card);
+                    SRcards?.Add(card);
                     break;
                 case E_Rarity.SSR:
-                    SRRcards.Add(card);
+                    SRRcards?.Add(card);
                     break;
             }
         }

@@ -232,7 +232,7 @@ public class WeaponSystem : Singleton<WeaponSystem>
         // 判断是攻击还是防御动作
         if (actionCard.isDefenseAction)
         {
-            // 防御动作：计算防御值并给英雄加护盾
+            // 1. 计算防御值（给护盾）
             int defenseValue = 0;
             switch (actionCard.E_WeaponHand)
             {
@@ -244,6 +244,10 @@ public class WeaponSystem : Singleton<WeaponSystem>
                     break;
             }
             HeroSystem.Instance.HeroView.UpdateShield(defenseValue);
+
+            // 2. 应用特殊防御效果（减免/反弹/免疫/清buff）
+            ApplyDefenseEffects(actionCard);
+
             yield return null;
         }
         else
@@ -261,7 +265,50 @@ public class WeaponSystem : Singleton<WeaponSystem>
             }
         }
     }
+    /// <summary>
+    /// 读取防御动作卡的所有防御效果，并应用到 CombatSystem
+    /// </summary>
+    private void ApplyDefenseEffects(ActionCard actionCard)
+    {
+        if (actionCard == null) return;
 
+        float totalReduction = 0f;
+        float totalReflect = 0f;
+        int totalImmune = 0;
+        bool clearBuffs = false;
+
+        foreach (var effect in actionCard.Effects)
+        {
+            if (effect is DamageReductionEffect dr)
+            {
+                totalReduction += dr.reductionPercent;
+            }
+            else if (effect is ReflectDamageEffect rd)
+            {
+                totalReflect += rd.reflectPercent;
+            }
+            else if (effect is ImmuneEffect im)
+            {
+                totalImmune += im.immuneCount;
+            }
+            else if (effect is BuffClearEffect bc)
+            {
+                clearBuffs = true;
+            }
+            // ActionStatEffect 的 DefenseBonus 由 CalculateDefenseValue 处理，这里忽略
+        }
+
+        // 根据左右手分别存储
+        switch (actionCard.E_WeaponHand)
+        {
+            case E_WeaponHand.Left:
+                leftCombatSystem?.SetDefenseEffects(totalReduction, totalReflect, totalImmune, clearBuffs);
+                break;
+            case E_WeaponHand.Right:
+                rightCombatSystem?.SetDefenseEffects(totalReduction, totalReflect, totalImmune, clearBuffs);
+                break;
+        }
+    }
     /// <summary>
     /// 获取敌人对玩家的攻击伤害值
     /// </summary>

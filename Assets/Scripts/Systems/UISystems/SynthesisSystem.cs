@@ -10,6 +10,7 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
 {
     [SerializeField]private BagCardsHolder BagCardsHolder;
     [SerializeField] private synCardsHolder synCardsHolder;
+    [SerializeField] private GameObject sythesisCardVFX;
     public Button btnAddCard;
     public Button btnRemoveCard;
     public Button btnSure;
@@ -22,6 +23,8 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
 
     [SerializeField] private Transform drawPilePoint;
     [SerializeField] private Transform discardPilePoint;
+
+    private bool isSynthsis=false;
 
     private void OnEnable()
     {
@@ -117,6 +120,7 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
 
     private IEnumerator synRemoveCardPerformer(synRemoveCardGA synRemoveCardGA )
     {
+        Debug.Log("【移除卡牌流程 开始】");
         //获取被选中的卡牌
         GetSynSelectedCards();
         if (synSelectedLogics == null || synSelectedLogics.Count == 0 )
@@ -141,29 +145,33 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
         foreach (var c in cards)
         {
             materialCards.Remove(c);
+            Debug.Log($"【从临时材料移除】卡牌{c.CardId}");
         }
         if (cards.Count > 0)
-            yield return bagSystem.Instance.AddBagCardViewPerformer(cards);
+        {
+            yield return bagSystem.Instance.AddBagCardViewPerformer(cards, isSynthsis);
+            isSynthsis = false;
+            Debug.Log("【放回背包完成】isSynthsis重置为false");
+        }
+        Debug.Log("【移除卡牌流程 结束】");
     }
 
     private IEnumerator synSurePerformer(synSureGA synSureGA)
     {
+        Debug.Log($"【合成开始】当前材料列表materialCards数量：{materialCards.Count}");
+
         // 1. 获取当前选中卡牌
-        
+
         if (materialCards.Count == 0)
         {
-            TipPanel tipPanel= UIManager.Instance.ShowPanel<TipPanel>();
+            TipPanel tipPanel = UIManager.Instance.ShowPanel<TipPanel>();
             tipPanel.ChangeInfo("请先选择合成材料卡牌");
             yield break;
         }
 
-        // 2. 提取选中卡牌的 ID
-        List<int> materialCardIds = materialCards
-            .Select(Card => Card.CardId)
-            .ToList();
-
         // 3. 匹配配方
-        var targetRecipe = SynthesisRecipeTable.Instance.GetMatchRecipe(materialCardIds);
+        var targetRecipe = SynthesisRecipeTable.Instance.GetMatchRecipe(materialCards);
+
         if (targetRecipe == null)
         {
             TipPanel tipPanel = UIManager.Instance.ShowPanel<TipPanel>();
@@ -179,27 +187,31 @@ public class SynthesisSystem : Singleton<SynthesisSystem>
         foreach (var cardLogic in copeCardLogics)
         {
             if (cardLogic == null) Debug.Log("kong");
+            //对playerDataManager移除卡牌
             PlayerDataManager.Instance.RemoveCardFromDeck(cardLogic.card);
             yield return DiscardCard(cardLogic);
         }
         materialCards.Clear();
-
+        Debug.Log("【材料清空】materialCards已全部清空");
         // 6. 根据【产出卡牌ID】创建新卡牌
-        Card newCard = CardManager.Instance.CreateCardById(targetRecipe.resultCardId);
+        Card newCard = CardManager.Instance.CreateCardById(targetRecipe.outputCard.cardId);
         if (newCard == null)
         {
-            Debug.LogError($"根据ID {targetRecipe.resultCardId} 未找到对应卡牌");
+            Debug.LogError($"根据ID {targetRecipe.outputCard.cardId} 未找到对应卡牌");
             yield break;
         }
+        GameObject vfx = Instantiate(sythesisCardVFX, drawPilePoint.transform.position, Quaternion.identity);
+        Destroy(vfx, 1f); // 自动销毁
+        yield return synCardsHolder.AddCard(newCard, drawPilePoint);
+        materialCards.Add(newCard);
+        Debug.Log($"【产物存入临时材料列表】materialCards当前数量：{materialCards.Count}");
+
 
         // 7. 新卡牌加入玩家卡组
         PlayerDataManager.Instance.AddCardToDeck(newCard);
-
-
-        yield return bagSystem.Instance.RefreshBagView();
-
-
-        Debug.Log($"合成成功！产出卡牌ID：{targetRecipe.resultCardId}");
+        Debug.Log($"【PlayerData永久添加产物】卡牌{newCard.CardId} 完成");
+        isSynthsis = true;
+        Debug.Log($"合成成功！产出卡牌ID：{isSynthsis}");
         yield break;
     }
 

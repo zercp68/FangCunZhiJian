@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b15801192a398a848917753ad11bbd82, type: 3}
+  m_Name: 1010
+  m_EditorClassIdentifier: 
+  <cardId>k__BackingField: 1010
+  <CardType>k__BackingField: 1
+  <Description>k__BackingField: "[R]2\u6C14\u5143\uFF0C\u6240\u6709\u4F24\u5BB3+25%"
+  <manaCost>k__BackingField: 2
+  <Image>k__BackingField: {fileID: 21300000, guid: 4a6ebebb5b55a8742a84597b3e1a9f8a, type: 3}
+  <CardMoney>k__BackingField: 50
+  <E_Rarity>k__BackingField: 1
+  E_WeaponHand: 0
+  <Effects>k__BackingField:
+  - rid: 6257529003975901210
+  <E_ElementType>k__BackingField: 2
+  references:
+    version: 2
+    RefIds:
+    - rid: 6257529003975901210
+      type: {class: AllStatBonusEffect, ns: , asm: Assembly-CSharp}
+      data:
+        allStatBonus: 0.25

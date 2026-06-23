@@ -20,8 +20,10 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     [SerializeField] private List<WeaponCardData> initialWeaponDatas;   // 初始卡组（ScriptableObject列表）
 
     // 运行时数据
+    //武器牌不进手牌
     private int currentMoney;
-    private List<Card> currentDeck = new List<Card>();   // 当前卡组（可变）
+    private List<Card> currentAllCards = new List<Card>();
+    private List<Card> currentHandDeck = new List<Card>();   // 当前手牌卡组（可变）
     private List<WeaponCard> currentWeaponDeck = new List<WeaponCard>();
 
     // 公共只读属性
@@ -31,10 +33,10 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     public System.Action<int> OnMoneyChanged;   // 金币变化事件
 
 
-    private void Start()
+    public void setup()
     {
         InitNewGame();
-        UIManager.Instance.ShowPanel<SynthesisPanel>();
+        UIManager.Instance.ShowPanel<CampsitePanel>();
     }
 
     /// <summary>
@@ -43,13 +45,14 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     public void InitNewGame()
     {
         currentMoney = initialMoney;
-        CardManager.Instance.fillCardList(initialCardDatas, currentDeck);
+        CardManager.Instance.fillCardList(initialCardDatas, currentHandDeck);
         CardManager.Instance.fillCardList(initialWeaponDatas, currentWeaponDeck);
+        UpdateAllCards();
         // 重置武器
         currentLeftWeapon = null;
         currentRightWeapon = null;
         OnMoneyChanged?.Invoke(currentMoney);   // 添加这一行
-        Debug.Log($"初始化完成，金币: {currentMoney}, 卡组数量: {currentDeck.Count}");
+        Debug.Log($"初始化完成，金币: {currentMoney}, 卡组数量: {currentHandDeck.Count}");
         // 新增：检查initialCardDatas是否配置
         if (initialCardDatas == null || initialCardDatas.Count == 0)
         {
@@ -60,6 +63,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
             Debug.LogWarning("PlayerDataManager: initialWeaponDatas（初始武器卡组）未配置！");
         }
     }
+
 
     /// <summary>
     /// 增加金币
@@ -93,30 +97,28 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     }
 
 
-    /// <summary>
-    /// 获取当前卡组（返回副本，避免外部直接修改）
-    /// </summary>
-    public List<Card> GetCurrentDeckCopy()
+    public void UpdateAllCards()
     {
-        return new List<Card>(currentDeck);
+        currentAllCards = new List<Card>();
+        currentAllCards.AddRange(currentHandDeck);
+        currentAllCards.AddRange(currentWeaponDeck);
     }
-
     /// <summary>
-    /// 添加卡牌到当前卡组
+    /// 获取当前所有卡组（返回副本，避免外部直接修改）
+    /// </summary>
+    public List<Card> GetCurrentAllCardsCopy()
+    {
+        return new List<Card>(currentAllCards);
+    }
+    /// <summary>
+    /// 添加卡牌到当前手牌卡组
     /// </summary>
     public void AddCardToDeck(Card card)
     {
-        currentDeck.Add(card);
-        Debug.Log($"添加卡牌: {card.CardId}，当前卡组数量: {currentDeck.Count}");
-    }
-
-    /// <summary>
-    /// 添加卡牌链表到当前卡组
-    /// </summary>
-    public void AddCardsToDeck(List<Card> cards)
-    {
-        currentDeck.AddRange(cards);
-        Debug.Log($"添加卡牌，当前卡组数量: {currentDeck.Count}");
+        if (card is WeaponCard weaponCard) AddCardToWeaponDeck(weaponCard);
+        else AddCardToHandDeck(card);
+        UpdateAllCards(); // 增删后统一更新全卡牌列表
+        Debug.Log($"添加卡牌: {card.CardId}, 当前手牌数量: {currentHandDeck.Count}");
     }
 
     /// <summary>
@@ -124,7 +126,49 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     /// </summary>
     public bool RemoveCardFromDeck(Card card)
     {
-        bool removed = currentDeck.Remove(card);
+        bool removed = false;
+        if (card is WeaponCard weaponCard) removed = RemoveCardFromWeaponDeck(weaponCard);
+        else removed = RemoveCardFromHandDeck(card);
+
+        if (removed)
+        {
+            UpdateAllCards(); // 同步更新全列表
+            Debug.Log($"移除卡牌: {card.CardId}");
+        }
+        return removed;
+    }
+    /// <summary>
+    /// 获取当前手牌卡组（返回副本，避免外部直接修改）
+    /// </summary>
+    public List<Card> GetCurrentHandDeckCopy()
+    {
+        return new List<Card>(currentHandDeck);
+    }
+
+    /// <summary>
+    /// 添加卡牌到当前手牌卡组
+    /// </summary>
+    public void AddCardToHandDeck(Card card)
+    {
+        currentHandDeck.Add(card);
+        Debug.Log($"添加卡牌: {card.CardId}，当前卡组数量: {currentHandDeck.Count}");
+    }
+
+    /// <summary>
+    /// 添加卡牌链表到当前卡组
+    /// </summary>
+    public void AddCardsToHandDeck(List<Card> cards)
+    {
+        currentHandDeck.AddRange(cards);
+        Debug.Log($"添加卡牌，当前卡组数量: {currentHandDeck.Count}");
+    }
+
+    /// <summary>
+    /// 从当前手牌卡组移除卡牌
+    /// </summary>
+    public bool RemoveCardFromHandDeck(Card card)
+    {
+        bool removed = currentHandDeck.Remove(card);
         if (removed) Debug.Log($"移除卡牌: {card.CardId}");
         return removed;
     }
@@ -219,10 +263,16 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         Debug.Log("武器卡组已清空");
     }
 
-    public void SellWeaponCard(WeaponCard weaponCard)
+    public bool SellWeaponCard(WeaponCard weaponCard)
     {
-        AddMoney(weaponCard.CardSellMoney);
-        return;
+        if (RemoveCardFromWeaponDeck(weaponCard))
+        {
+            AddMoney(weaponCard.CardSellMoney);
+            UpdateAllCards();
+            return true;
+        }
+        Debug.LogWarning($"出售失败：卡牌 {weaponCard.CardId} 不在武器卡组中");
+        return false;
     }
     #endregion
 }
